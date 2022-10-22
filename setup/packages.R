@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 
-if (!("renv" %in% rownames(installed.packages("renv"))) install.packages("renv")
+if (!("renv" %in% rownames(installed.packages()))) install.packages("renv")
 
 renv::restore()
 
