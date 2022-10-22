@@ -19,6 +19,8 @@ devtools::load_all("robustrwd")
 
 tables <- 
   read_folder_csv_zips("data") %>% 
+  # the team that provides you data will probably have done 
+  # some ETL on it. We'll call this the "initial" ETL
   # see robustrwd/R/inital-etl.R for this ETL
   initial_etl()
 
@@ -39,11 +41,19 @@ bene <- tables$bene08
 #  * 
 
 
-# do better ETL
+# The team that provided you data did a great job, but `pointblank` 
+# revealed there are some things about the data that still need to be done. 
+# 
+# Let's do ETL based on the results of our `pointblank` assessment. We'll call this
+# `pointblanked` ETL. 
 
 
 
-# do analysis again, get different findings
+# Now that we've done `pointblanked` ETL, let's do the same analysis again
+
+
+
+# Interesting, our findings are different! 
 
 
 
