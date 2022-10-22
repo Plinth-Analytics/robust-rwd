@@ -11,7 +11,7 @@ source("setup/packages.R")
 #   which isn't supported
 # * This script is not lazy--it will download the data regardless of whether
 #   any files are present, and will overwrite existing files
-source("setup/download.R")
+if (!dir.exists("data")) source("setup/download.R")
 
 library(tidyverse)
 library(pointblank)
@@ -26,10 +26,11 @@ tables <-
 
 bene <- tables$bene08
 
-# do some analysis, get findings
+# Do some analysis
 
-# for time-to-event analyses, assume patients were diagnosed with conditions at age 65
-
+# Let's see how some predictors may affect survival after age 65. Note that we assume: 
+#  * patients were diagnosed with conditions at age 65
+#  * greater inpatient spending suggests more inpatient care was provided
 
 
 # It's great that we have results. Still, let's run pointblank to be sure they come from
@@ -56,6 +57,7 @@ bene <- tables$bene08
 # Interesting, our findings are different! 
 
 
-
+# [Try this on your own] Pretend we were asked to use more data, from the years 
+# 2009 and 2010. Can you apply `pointblank` to these data? What do you see? 
 
 
