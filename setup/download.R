@@ -9,7 +9,7 @@ downloads_url <- function(which_file) {
     )
 }
 
-destination <- function(nm)  file.path("data", paste(nm, ".csv", sep = ""))
+destination <- function(nm)  file.path("data", paste(nm, ".csv.zip", sep = ""))
 
 if (!dir.exists(here::here("data"))) dir.create("data")
 
