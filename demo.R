@@ -1,13 +1,13 @@
 
-# This script will make sure we have the right packages installed. 
-# You may see a warning if your version of R is different--this will 
-# probably not make a difference to your findings, but if anything is 
+# This script will make sure we have the right packages installed.
+# You may see a warning if your version of R is different--this will
+# probably not make a difference to your findings, but if anything is
 # particularly concerning then consider look here to revise
 source("setup/packages.R")
 
-# Note: 
-# * It's unfortunately necessary to download files before reading them 
-#   rather than reading from the url since they're zips, remotely reading 
+# Note:
+# * It's unfortunately necessary to download files before reading them
+#   rather than reading from the url since they're zips, remotely reading
 #   which isn't supported
 # * This script is not lazy--it will download the data regardless of whether
 #   any files are present, and will overwrite existing files
@@ -17,18 +17,22 @@ library(tidyverse)
 library(pointblank)
 devtools::load_all("robustrwd")
 
-tables <- 
-  read_folder_csv_zips("data") %>% 
-  # the team that provides you data will probably have done 
+tables <-
+  read_folder_csv_zips("data") %>%
+  # the team that provides you data will probably have done
   # some ETL on it. We'll call this the "initial" ETL
   # see robustrwd/R/initial-etl.R for this ETL
   initial_etl()
 
 bene <- tables$bene08
 
+# do we need more years? do something like:
+# bene <- bind_rows(tables[grep("bene", names(tables))])
+# but make sure your ETL works as-intended ;)
+
 # Do some analysis
 
-# Let's see how some predictors may affect survival after age 65. Note that we assume: 
+# Let's see how some predictors may affect survival after age 65. Note that we assume:
 #  * patients were diagnosed with conditions at age 65
 #  * greater inpatient spending suggests more inpatient care was provided
 
@@ -37,27 +41,45 @@ bene <- tables$bene08
 # acceptable data...
 
 # see codebook at https://www.cms.gov/files/document/de-10-codebook.pdf-0
-# pointblank agent will address the following points from the codebook: 
+# pointblank agent will address the following points from the codebook:
 #  * There are 2,326,856 valid values of DESYNPUF_ID
-#  * 
+#  *
+
+# Also, since we expect patients to be covered by Medicare starting at age 65,
+# let's make sure everyone is 65 or older
+
+#--- insert pointblank agent here
+
+# The team that provided you data did a great job, but `pointblank`
+# revealed there are some things about the data that still need to be done.
+#
+# It looks like there are people younger than 65 years in this dataset!
+# This is because Medicare also covers patients who have end-stage disease,
+# no matter their age.
+
+# Now that we know these data have patients covered for ESRD (not age-eligibility),
+# let's filter to the population who we intend to investigate.
+#
+# We'll start by making an attrition table to report this filtering:
+
+attrition_table <- step_counter(bene, "Doesn't have ESRD" = esrd_ind == 0)
+# look at the attrition table to see how many patients were removed:
+attrition_table
+
+age_eligible_beneficiaries <- filter(bene, esrd_ind == 0)
+
+# we'll look at follow-up and lifespan to be sure we've only got patients who were 65 or older
+
+qplot(age_eligible_beneficiaries$lifespan_years)
+
+# Now that we've done ETL with pointblank in mind, let's do the same analysis again
 
 
-# The team that provided you data did a great job, but `pointblank` 
-# revealed there are some things about the data that still need to be done. 
-# 
-# Let's do ETL based on the results of our `pointblank` assessment. We'll call this
-# `pointblanked` ETL. 
+
+# Interesting, our findings are different!
 
 
-
-# Now that we've done `pointblanked` ETL, let's do the same analysis again
-
-
-
-# Interesting, our findings are different! 
-
-
-# [Try this on your own] Pretend we were asked to use more data, from the years 
-# 2009 and 2010. Can you apply `pointblank` to these data? What do you see? 
+# [Try this on your own] Pretend we were asked to use more data, from the years
+# 2009 and 2010. Can you apply `pointblank` to these data? What do you see?
 
 
