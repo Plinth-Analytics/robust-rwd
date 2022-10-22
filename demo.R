@@ -26,11 +26,13 @@ tables <-
 
 bene <- tables$bene08
 
-# do we need more years? do something like:
+# do we need more years to provide important insights? do something like:
 # bene <- bind_rows(tables[grep("bene", names(tables))])
 # but make sure your ETL works as-intended ;)
 
 # Do some analysis
+
+#----- insert analysis code here
 
 # Let's see how some predictors may affect survival after age 65. Note that we assume:
 #  * patients were diagnosed with conditions at age 65
@@ -38,7 +40,7 @@ bene <- tables$bene08
 
 
 # It's great that we have results. Still, let's run pointblank to be sure they come from
-# acceptable data...
+# acceptable data...we'll start by making sure the data align with the codebook
 
 # see codebook at https://www.cms.gov/files/document/de-10-codebook.pdf-0
 # pointblank agent will address the following points from the codebook:
