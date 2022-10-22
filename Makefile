@@ -1,4 +1,6 @@
 
+setupenv: data packages
+
 data: setup/download.R
 	Rscript setup/download.R
 
