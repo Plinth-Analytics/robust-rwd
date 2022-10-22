@@ -57,10 +57,10 @@ initial_etl_bene <- function(bene_df) {
     mutate_at(c("bene_birth_dt", "bene_death_dt"), ymd) %>%
     mutate(
       # just use difftime
-      lifespan_years = coalesce(
-        bene_death_dt - bene_birth_dt,
-        ymd("2008-01-01") - bene_birth_dt)
-    )
+      lifespan_years = bene_death_dt - bene_birth_dt,
+      follow_up_years = coalesce(lifespan_years, ymd("2008-01-01") - bene_birth_dt)
+    ) %>%
+    rename_all(~ gsub("(bene|sp)_", "", .x))
 }
 
 initial_etl_inpatient <- function(inpatient_df) {
