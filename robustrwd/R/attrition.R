@@ -12,7 +12,7 @@ step_counter_factory <- function(.df) {
 #' @param .df A table whose rows will be counted
 #' @param ... Criteria (named, if you like) to apply to `.df`
 #' 
-#' @example step_counter(mtcars, "vs are 1" = vs == 1, "mpg less than 20" = mpg < 20)
+#' @examples step_counter(mtcars, "vs are 1" = vs == 1, "mpg less than 20" = mpg < 20)
 step_counter <- function(.df, ...) {
   # there's something nice about writing "Everyone" = TRUE
   criteria <- append(list("Everyone" = quo(TRUE)), enquos(...))
