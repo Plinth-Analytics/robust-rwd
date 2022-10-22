@@ -21,7 +21,7 @@ tables <-
   read_folder_csv_zips("data") %>% 
   # the team that provides you data will probably have done 
   # some ETL on it. We'll call this the "initial" ETL
-  # see robustrwd/R/inital-etl.R for this ETL
+  # see robustrwd/R/initial-etl.R for this ETL
   initial_etl()
 
 bene <- tables$bene08
