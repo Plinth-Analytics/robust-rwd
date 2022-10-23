@@ -8,11 +8,13 @@
 source("setup/packages.R")
 
 # Note:
-# * It's unfortunately necessary to download files before reading them
-#   rather than reading from the url since they're zips, remotely reading
-#   which isn't supported
+# * Since they're zips, it's unfortunately necessary to download files
+#   before reading them rather than reading from the url--remotely reading
+#   isn't supported
 # * This script is not lazy--it will download the data regardless of whether
 #   any files are present, and will overwrite existing files
+# * We only check if the "data" folder exists before deciding whether to
+#   download
 if (!dir.exists("data")) source("setup/download.R")
 
 library(tidyverse)
@@ -22,6 +24,10 @@ devtools::load_all("robustrwd")
 
 # read data ==================
 
+
+# Alternatively, we can make it such that the table is only read in at
+# interrogation-time. This is useful in situations where we might deploy an
+# agent from a YAML file. (https://rich-iannone.github.io/pointblank/articles/VALID-I.html)
 tables <-
   read_folder_csv_zips("data") %>%
   # the team that provides you data will probably have done
@@ -52,13 +58,40 @@ first_cancer_fit <-
 # It's great that we have results. Still, let's run pointblank to be sure they come from
 # acceptable data...we'll start by making sure the data align with the codebook
 
-# see codebook at https://www.cms.gov/files/document/de-10-codebook.pdf-0
-# These pointblank agent will address some points from the codebook
-
-#  * There are 2,326,856 valid values of DESYNPUF_ID
-#  * ...
-#  * Also, since we need patients to be age-eligible for Medicare,
-#    let's make sure everyone is 65 or older
+# This pointblank agent will address
+#   * some expectations from the codebook (https://www.cms.gov/files/document/de-10-codebook.pdf-0)
+#   * other expectations we asked the data delivery team to address
+# We'll make this a function so we can run it again
+teach_agent <- function(tbl, tbl_name, label) {
+  create_agent(tbl = tbl, tbl_name = tbl_name, label = label) %>%
+    col_is_posix(vars(birth_dt, death_dt)) %>%
+    #  There are 2,326,856 valid values of DESYNPUF_ID
+    # Some columns should be logical
+    col_is_logical(vars(
+      alzhdmta, chf, chrnkidn, cncr,
+      copd, depressn, diabetes, ischmcht,
+      osteoprs, ra_oa, strketia)
+    ) %>%
+    #  Since we need patients to be age-eligible for Medicare,
+    #  let's make sure everyone survived to 65 or older
+    col_vals_gte(vars(survival_years), value = 65) %>%
+    # a few variables should be in a particular set of values
+    col_vals_in_set(var(sex_ident_cd), set = c("Male", "Female")) %>%
+    col_vals_in_set(var(race_cd), set = c("White", "Black", "Other", "Hispanic")) %>%
+    col_vals_in_set(
+      var(state_code),
+      set = c(
+        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID",
+        "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
+        "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA",
+        "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+        "Others"
+      )
+    ) %>%
+    col_vals_regex(vars(b), regex = "^[0-9]-[a-z]{3}-[0-9]{3}$") %>%
+    col_vals_between(vars(d), left = 0, right = 5000) %>%
+    interrogate()
+}
 
 # action taken and reflections on pointblank results =============
 
