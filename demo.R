@@ -15,7 +15,6 @@ source("setup/packages.R")
 #   any files are present, and will overwrite existing files
 if (!dir.exists("data")) source("setup/download.R")
 
-library(survminer)
 library(tidyverse)
 library(pointblank)
 library(survival)
@@ -55,7 +54,6 @@ first_cancer_fit <-
 
 # see codebook at https://www.cms.gov/files/document/de-10-codebook.pdf-0
 # These pointblank agent will address some points from the codebook
-
 
 #  * There are 2,326,856 valid values of DESYNPUF_ID
 #  * ...
