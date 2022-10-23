@@ -75,6 +75,7 @@ teach_agent_expectations <- function(agent) {
     )) %>%
     #  Since we need patients to be age-eligible for Medicare,
     #  let's make sure everyone survived to 65 or older (but not implausibly old)
+    # tried this a few ways but tests that should fail seem to pass...
     col_vals_between("survival_years", left = 65, right = 120, brief = "Age between 65 and 120") %>%
     col_vals_gte("survival_years", value = 65, brief = "Age 65 or older") %>%
     col_vals_expr(expr(survival_years >= 65 & survival_years < 120), brief = "Age between 65 and 120 (expr)") %>%
