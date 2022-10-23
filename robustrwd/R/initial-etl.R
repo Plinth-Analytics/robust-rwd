@@ -1,6 +1,4 @@
 
-initial_etl <- etl_factory(initial_etl_bene, initial_etl_inpatient)
-
 factor_as_string <- compose(as.character, factor)
 
 #' Do initial ETL on the beneficiaries table
@@ -20,8 +18,8 @@ initial_etl_bene <- function(bene_df) {
     rename_all(tolower) %>%
     mutate_at(
       c("sp_alzhdmta", "sp_chf", "sp_chrnkidn", "sp_cncr",
-        "sp_copd", "sp_depressn", "sp_diabetes", "sp_ischmcht", "sp_osteoprs",
-        "sp_ra_oa", "sp_strketia"),
+        "sp_copd", "sp_depressn", "sp_diabetes", "sp_ischmcht",
+        "sp_osteoprs", "sp_ra_oa", "sp_strketia"),
       ~ .x == 1
     ) %>%
     mutate_at(
@@ -69,5 +67,19 @@ initial_etl_inpatient <- function(inpatient_df) {
   # maybe do some ETL on the inpatient data.frame
   inpatient_df %>%
     rename_all(tolower)
+}
+
+initial_etl <- function(tables) {
+  # could:
+  #  * map over named list of functions
+  #  * make sure expected tables are present
+  # but this may be easier to review
+  which_tables <-
+    map(set_names(c("bene", "inpatient")), ~ grep(.x, names(tables), value = TRUE))
+
+  tables[which_tables$bene] <- map(tables[which_tables$bene], initial_etl_bene)
+  tables[which_tables$inpatient] <- map(tables[which_tables$inpatient], initial_etl_inpatient)
+
+  tables
 }
 
