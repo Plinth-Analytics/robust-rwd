@@ -24,7 +24,6 @@ devtools::load_all("robustrwd")
 
 # read data ==================
 
-
 # Alternatively, we can make it such that the table is only read in at
 # interrogation-time. This is useful in situations where we might deploy an
 # agent from a YAML file. (https://rich-iannone.github.io/pointblank/articles/VALID-I.html)
@@ -49,8 +48,7 @@ bene <- tables$bene08
 #  * greater inpatient spending suggests more inpatient care was provided
 # scoping out some analyses
 
-first_cancer_fit <-
-  coxph(Surv(survival_years - 65, event = death_observed) ~ cncr, data = bene) %>%
+coxph(Surv(survival_years, event = death_observed) ~ cncr, data = bene) %>%
   broom::tidy(exp = TRUE, conf.int = TRUE)
 
 # Pointblank - first run =================
@@ -62,24 +60,29 @@ first_cancer_fit <-
 #   * some expectations from the codebook (https://www.cms.gov/files/document/de-10-codebook.pdf-0)
 #   * other expectations we asked the data delivery team to address
 # We'll make this a function so we can run it again
-teach_agent <- function(tbl, tbl_name, label) {
-  create_agent(tbl = tbl, tbl_name = tbl_name, label = label) %>%
+teach_agent_expectations <- function(agent) {
+  agent %>%
+    # all the rows should be distinct--this is a patient-level table
+    rows_distinct() %>%
     col_is_posix(vars(birth_dt, death_dt)) %>%
-    #  There are 2,326,856 valid values of DESYNPUF_ID
+    # There should be fewer than 2,326,856 unique values of DESYNPUF_ID
+    # NOTE FOR NATHANIEL: Is there a function to be sure of this? or do we need a custom expression?
+    col_vals_expr(expr(length(unique(desynpuf_id)) <= 2326856), brief = "Plausible number of unique IDs") %>%
     # Some columns should be logical
     col_is_logical(vars(
-      alzhdmta, chf, chrnkidn, cncr,
-      copd, depressn, diabetes, ischmcht,
-      osteoprs, ra_oa, strketia)
-    ) %>%
+      alzhdmta, chf, chrnkidn, cncr, copd, depressn,
+      diabetes, ischmcht, osteoprs, ra_oa, strketia
+    )) %>%
     #  Since we need patients to be age-eligible for Medicare,
-    #  let's make sure everyone survived to 65 or older
-    col_vals_gte(vars(survival_years), value = 65) %>%
+    #  let's make sure everyone survived to 65 or older (but not implausibly old)
+    col_vals_between("survival_years", left = 65, right = 120, brief = "Age between 65 and 120") %>%
+    col_vals_gte("survival_years", value = 65, brief = "Age 65 or older") %>%
+    col_vals_expr(expr(survival_years >= 65 & survival_years < 120), brief = "Age between 65 and 120 (expr)") %>%
     # a few variables should be in a particular set of values
-    col_vals_in_set(var(sex_ident_cd), set = c("Male", "Female")) %>%
-    col_vals_in_set(var(race_cd), set = c("White", "Black", "Other", "Hispanic")) %>%
+    col_vals_in_set("sex_ident_cd", set = c("Male", "Female")) %>%
+    col_vals_in_set("race_cd", set = c("White", "Black", "Other", "Hispanic")) %>%
     col_vals_in_set(
-      var(state_code),
+      "state_code",
       set = c(
         "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID",
         "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO",
@@ -87,11 +90,14 @@ teach_agent <- function(tbl, tbl_name, label) {
         "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
         "Others"
       )
-    ) %>%
-    col_vals_regex(vars(b), regex = "^[0-9]-[a-z]{3}-[0-9]{3}$") %>%
-    col_vals_between(vars(d), left = 0, right = 5000) %>%
-    interrogate()
+    )
 }
+
+delivered_data_agent <-
+  create_agent(tbl = bene, label = "Beneficiary data as-delivered") %>%
+  teach_agent_expectations()
+
+interrogate(delivered_data_agent)
 
 # action taken and reflections on pointblank results =============
 
@@ -113,7 +119,7 @@ attrition_table <-
   step_counter(
     bene,
     "Doesn't have ESRD" = esrd_ind == 0,
-    "Over 65 years of age" = survival_years >= 65
+    "65 years of age or older" = survival_years >= 65
     )
 
 # look at the attrition table to see how many patients were removed:
@@ -125,15 +131,20 @@ age_eligible_beneficiaries <- filter(bene, esrd_ind == 0, survival_years >= 65)
 
 # let's re-run `pointblank` on the updated data
 
+updated_data_agent <-
+  create_agent(
+    tbl = age_eligible_beneficiaries,
+    label = "Age-eligible beneficiaries (post-delivery update)"
+    ) %>%
+  teach_agent_expectations()
 
-
+interrogate(updated_data_agent)
 
 # Analysis on updated data ==========================
 
 # Now that we've done ETL with pointblank in mind, let's do the same analysis again
 
-pointblanked_cancer_fit <-
-  coxph(Surv(survival_years - 65, event = death_observed) ~ cncr, data = age_eligible_beneficiaries) %>%
+coxph(Surv(survival_years, event = death_observed) ~ cncr, data = age_eligible_beneficiaries) %>%
   broom::tidy(exp = TRUE, conf.int = TRUE)
 
 # Interesting, our findings are pretty different!
