@@ -16,18 +16,19 @@ factor_as_string <- compose(as.character, factor)
 initial_etl_bene <- function(bene_df) {
   bene_df %>%
     rename_all(tolower) %>%
+    rename_all(~ gsub("(bene|sp)_", "", .x)) %>%
     mutate_at(
-      c("sp_alzhdmta", "sp_chf", "sp_chrnkidn", "sp_cncr",
-        "sp_copd", "sp_depressn", "sp_diabetes", "sp_ischmcht",
-        "sp_osteoprs", "sp_ra_oa", "sp_strketia"),
+      c("alzhdmta", "chf", "chrnkidn", "cncr",
+        "copd", "depressn", "diabetes", "ischmcht",
+        "osteoprs", "ra_oa", "strketia"),
       ~ .x == 1
     ) %>%
     mutate_at(
-      "bene_sex_ident_cd",
+      "sex_ident_cd",
       ~ factor_as_string(.x, levels = 1:2, labels = c("Male", "Female"))
       ) %>%
     mutate_at(
-      "bene_race_cd",
+      "race_cd",
       ~ factor_as_string(
         .x,
         levels = c(1:2, 3, 5),
@@ -35,7 +36,7 @@ initial_etl_bene <- function(bene_df) {
       )
     ) %>%
     mutate_at(
-      "sp_state_code",
+      "state_code",
       ~ factor_as_string(
         .x,
         levels =
@@ -52,15 +53,14 @@ initial_etl_bene <- function(bene_df) {
           "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "Others")
       )
     ) %>%
-    mutate_at(c("bene_birth_dt", "bene_death_dt"), ymd) %>%
+    mutate_at(c("birth_dt", "death_dt"), ymd) %>%
     mutate(
-      years_until_death = as.numeric(difftime(bene_death_dt, bene_birth_dt, units = "days")) / 365.25,
-      coverage_end_month = ymd("2008-01-01") + months(bene_hi_cvrage_tot_mons),
-      years_alive_so_far = as.numeric(difftime(coverage_end_month, bene_birth_dt, units = "days")) / 365.25,
+      years_until_death = as.numeric(difftime(death_dt, birth_dt, units = "days")) / 365.25,
+      coverage_end_month = ymd("2008-01-01") + months(hi_cvrage_tot_mons),
+      years_alive_so_far = as.numeric(difftime(coverage_end_month, birth_dt, units = "days")) / 365.25,
       survival_years = coalesce(years_until_death, years_alive_so_far),
-      death_observed = !is.na(bene_death_dt)
-    ) %>%
-    rename_all(~ gsub("(bene|sp)_", "", .x))
+      death_observed = !is.na(death_dt)
+    )
 }
 
 initial_etl_inpatient <- function(inpatient_df) {
