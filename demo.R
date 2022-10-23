@@ -18,6 +18,8 @@ library(pointblank)
 library(survival)
 devtools::load_all("robustrwd")
 
+# read data ==================
+
 tables <-
   read_folder_csv_zips("data") %>%
   # the team that provides you data will probably have done
@@ -31,17 +33,19 @@ bene <- tables$bene08
 # bene <- bind_rows(tables[grep("bene", names(tables))])
 # but make sure your ETL works as-intended ;)
 
-# Do some analysis
-
-#----- insert analysis code here
+# Analysis (initial) ======================
 
 # Let's see how some predictors may affect survival after age 65. Note that we assume:
 #  * patients were diagnosed with conditions at age 65
 #  * greater inpatient spending suggests more inpatient care was provided
 
-km_fit <-
+km_fits <- map(
+  c("cncr", "chf", "alzhdmta", "chrnkidn", "copd", "depressn", "diabetes"),
+  ~ survfit(as.formula(paste("Surv(survival_years, event = death_observed) ~ ", .x)), data = bene)
+  )
 
 
+# Pointblank - first run =================
 
 # It's great that we have results. Still, let's run pointblank to be sure they come from
 # acceptable data...we'll start by making sure the data align with the codebook
@@ -49,12 +53,13 @@ km_fit <-
 # see codebook at https://www.cms.gov/files/document/de-10-codebook.pdf-0
 # pointblank agent will address the following points from the codebook:
 #  * There are 2,326,856 valid values of DESYNPUF_ID
-#  *
+#  * ...
 
 # Also, since we expect patients to be covered by Medicare starting at age 65,
 # let's make sure everyone is 65 or older
 
-#--- insert pointblank agent here
+
+# action taken and reflections on pointblank results =============
 
 # The team that provided you data did a great job, but `pointblank`
 # revealed there are some things about the data that still need to be done.
@@ -76,6 +81,7 @@ attrition_table <-
     "Doesn't have ESRD" = esrd_ind == 0,
     "Under 65 years of age" = years_until_death >= 65 | years_alive_so_far >= 65
     )
+
 # look at the attrition table to see how many patients were removed:
 attrition_table
 
@@ -85,12 +91,22 @@ age_eligible_beneficiaries <- filter(bene, esrd_ind == 0, years_until_death >= 6
 
 qplot(age_eligible_beneficiaries$survival_years)
 
+
+# pointblank on updated data =======================
+
+
+
+
+# Analysis on updated data ==========================
+
 # Now that we've done ETL with pointblank in mind, let's do the same analysis again
 
 
 
 # Interesting, our findings are different!
 
+
+# exercises for the reader
 
 # [Try this on your own] Pretend we were asked to use more data, from the years
 # 2009 and 2010. Can you apply `pointblank` to these data? What do you see?
