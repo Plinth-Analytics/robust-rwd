@@ -15,6 +15,7 @@ if (!dir.exists("data")) source("setup/download.R")
 
 library(tidyverse)
 library(pointblank)
+library(survival)
 devtools::load_all("robustrwd")
 
 tables <-
@@ -38,6 +39,9 @@ bene <- tables$bene08
 #  * patients were diagnosed with conditions at age 65
 #  * greater inpatient spending suggests more inpatient care was provided
 
+km_fit <-
+
+
 
 # It's great that we have results. Still, let's run pointblank to be sure they come from
 # acceptable data...we'll start by making sure the data align with the codebook
@@ -56,23 +60,30 @@ bene <- tables$bene08
 # revealed there are some things about the data that still need to be done.
 #
 # It looks like there are people younger than 65 years in this dataset!
-# This is because Medicare also covers patients who have end-stage disease,
+# This is because (1) CMS also Medicare also covers patients who have end-stage disease,
 # no matter their age.
 
-# Now that we know these data have patients covered for ESRD (not age-eligibility),
-# let's filter to the population who we intend to investigate.
+# Now that we know these data reflect patients who are not age-eligible for Medicare,
+# let's filter to the population who we intend to investigate. ESRD could be one reason for
+# Medicare coverage, but there are others so we'll just filter out patients who are under
+# 65 years of age at the time these data were taken.
 #
 # We'll start by making an attrition table to report this filtering:
 
-attrition_table <- step_counter(bene, "Doesn't have ESRD" = esrd_ind == 0)
+attrition_table <-
+  step_counter(
+    bene,
+    "Doesn't have ESRD" = esrd_ind == 0,
+    "Under 65 years of age" = years_until_death >= 65 | years_alive_so_far >= 65
+    )
 # look at the attrition table to see how many patients were removed:
 attrition_table
 
-age_eligible_beneficiaries <- filter(bene, esrd_ind == 0)
+age_eligible_beneficiaries <- filter(bene, esrd_ind == 0, years_until_death >= 65 | years_alive_so_far >= 65)
 
 # we'll look at follow-up and lifespan to be sure we've only got patients who were 65 or older
 
-qplot(age_eligible_beneficiaries$lifespan_years)
+qplot(age_eligible_beneficiaries$survival_years)
 
 # Now that we've done ETL with pointblank in mind, let's do the same analysis again
 
