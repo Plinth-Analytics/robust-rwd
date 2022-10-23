@@ -69,6 +69,7 @@ initial_etl_inpatient <- function(inpatient_df) {
     rename_all(tolower)
 }
 
+# could make a function factory out of this if needed
 initial_etl <- function(tables) {
   # could:
   #  * map over named list of functions
