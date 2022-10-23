@@ -60,8 +60,8 @@ coxph(Surv(survival_years, event = death_observed) ~ cncr, data = bene) %>%
 #   * some expectations from the codebook (https://www.cms.gov/files/document/de-10-codebook.pdf-0)
 #   * other expectations we asked the data delivery team to address
 # We'll make this a function so we can run it again
-teach_agent_expectations <- function(agent) {
-  agent %>%
+assess_expectations <- function(tbl) {
+  tbl %>%
     # all the rows should be distinct--this is a patient-level table
     rows_distinct() %>%
     col_is_posix(vars(birth_dt, death_dt)) %>%
@@ -76,9 +76,7 @@ teach_agent_expectations <- function(agent) {
     #  Since we need patients to be age-eligible for Medicare,
     #  let's make sure everyone survived to 65 or older (but not implausibly old)
     # tried this a few ways but tests that should fail seem to pass...
-    col_vals_between("survival_years", left = 65, right = 120, brief = "Age between 65 and 120") %>%
-    col_vals_gte("survival_years", value = 65, brief = "Age 65 or older") %>%
-    col_vals_expr(expr(survival_years >= 65 & survival_years < 120), brief = "Age between 65 and 120 (expr)") %>%
+    col_vals_between(vars(survival_years), left = 65, right = 120, brief = "Age between 65 and 120") %>%
     # a few variables should be in a particular set of values
     col_vals_in_set("sex_ident_cd", set = c("Male", "Female")) %>%
     col_vals_in_set("race_cd", set = c("White", "Black", "Other", "Hispanic")) %>%
@@ -94,11 +92,7 @@ teach_agent_expectations <- function(agent) {
     )
 }
 
-delivered_data_agent <-
-  create_agent(tbl = bene, label = "Beneficiary data as-delivered") %>%
-  teach_agent_expectations()
-
-interrogate(delivered_data_agent)
+assess_expectations(bene)
 
 # action taken and reflections on pointblank results =============
 
@@ -132,14 +126,7 @@ age_eligible_beneficiaries <- filter(bene, esrd_ind == 0, survival_years >= 65)
 
 # let's re-run `pointblank` on the updated data
 
-updated_data_agent <-
-  create_agent(
-    tbl = age_eligible_beneficiaries,
-    label = "Age-eligible beneficiaries (post-delivery update)"
-    ) %>%
-  teach_agent_expectations()
-
-interrogate(updated_data_agent)
+assess_expectations(age_eligible_beneficiaries)
 
 # Analysis on updated data ==========================
 
