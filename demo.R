@@ -59,13 +59,8 @@ first_cancer_fit <-
 
 #  * There are 2,326,856 valid values of DESYNPUF_ID
 #  * ...
-
-# issue #1:
-# Also, since we expect patients to be covered by Medicare starting at age 65,
-# let's make sure everyone is 65 or older
-# issue #2:
-#
-# issue #3:
+#  * Also, since we need patients to be age-eligible for Medicare,
+#    let's make sure everyone is 65 or older
 
 # action taken and reflections on pointblank results =============
 
@@ -97,6 +92,8 @@ age_eligible_beneficiaries <- filter(bene, esrd_ind == 0, survival_years >= 65)
 
 # pointblank on updated data =======================
 
+# let's re-run `pointblank` on the updated data
+
 
 
 
@@ -114,5 +111,3 @@ pointblanked_cancer_fit <-
 
 # [Try this on your own] Pretend we were asked to use more data, from the years
 # 2009 and 2010. Can you apply `pointblank` to these data? What do you see?
-
-
