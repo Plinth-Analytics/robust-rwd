@@ -56,9 +56,11 @@ initial_etl_bene <- function(bene_df) {
     ) %>%
     mutate_at(c("bene_birth_dt", "bene_death_dt"), ymd) %>%
     mutate(
-      # just use difftime
-      lifespan_years = bene_death_dt - bene_birth_dt,
-      follow_up_years = coalesce(lifespan_years, ymd("2008-01-01") - bene_birth_dt)
+      years_until_death = as.numeric(difftime(bene_death_dt, bene_birth_dt, units = "days")) / 365.25,
+      coverage_end_month = ymd("2008-01-01") + months(bene_hi_cvrage_tot_mons),
+      years_alive_so_far = as.numeric(difftime(coverage_end_month, bene_birth_dt, units = "days")) / 365.25,
+      survival_years = coalesce(years_until_death, years_alive_so_far),
+      death_observed = !is.na(bene_death_dt)
     ) %>%
     rename_all(~ gsub("(bene|sp)_", "", .x))
 }
