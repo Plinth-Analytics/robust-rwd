@@ -1,6 +1,4 @@
 
-# TODO: revise lockfile to only what's needed
-
 # This script will make sure we have the right packages installed.
 # You may see a warning if your version of R is different--this will
 # probably not make a difference to your findings, but if anything is
@@ -75,7 +73,6 @@ assess_expectations <- function(tbl) {
     )) %>%
     #  Since we need patients to be age-eligible for Medicare,
     #  let's make sure everyone survived to 65 or older (but not implausibly old)
-    # tried this a few ways but tests that should fail seem to pass...
     col_vals_between(vars(survival_years), left = 65, right = 120, brief = "Age between 65 and 120") %>%
     # a few variables should be in a particular set of values
     col_vals_in_set("sex_ident_cd", set = c("Male", "Female")) %>%
