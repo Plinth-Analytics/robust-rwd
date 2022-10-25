@@ -1,7 +1,7 @@
 
 all: setup_env initial_etl
 
-setup_env: data packages
+setup_env: packages data 
 
 data: setup/download.R
 	Rscript setup/download.R
