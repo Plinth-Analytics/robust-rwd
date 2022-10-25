@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.2.0",
+    "Version": "4.1.1",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -408,7 +408,7 @@
       "Package": "downlit",
       "Version": "0.4.2",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Hash": "79bf3f66590752ffbba20f8d2da94c7c",
       "Requirements": [
         "brio",
@@ -446,7 +446,7 @@
       "Package": "dtplyr",
       "Version": "1.2.2",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Hash": "c5f8828a0b459a703db190b001ad4818",
       "Requirements": [
         "crayon",
@@ -1073,7 +1073,7 @@
       "Package": "pkgdown",
       "Version": "2.0.6",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Hash": "f958d0b2a5dabc5ffd414f062b1ffbe7",
       "Requirements": [
         "bslib",
@@ -1553,7 +1553,7 @@
       "Package": "stringr",
       "Version": "1.4.1",
       "Source": "Repository",
-      "Repository": "CRAN",
+      "Repository": "RSPM",
       "Hash": "a66ad12140cd34d4f9dfcc19e84fc2a5",
       "Requirements": [
         "glue",
