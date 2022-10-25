@@ -10,9 +10,13 @@ factor_as_string <- compose(as.character, factor)
 #'
 #' Ideally, we would specify levels/labels elsewhere so they're more easily
 #' modified
+#' 
+#' @param bene_df A Beneficiary table (one row per patient) provided by CMS. 
 #'
-#' @importFrom lubridate year ymd years
+#' @importFrom lubridate ymd 
 #' @importFrom dplyr rename_all mutate mutate_at
+#' 
+#' 
 initial_etl_bene <- function(bene_df) {
   bene_df %>%
     rename_all(tolower) %>%
@@ -64,12 +68,24 @@ initial_etl_bene <- function(bene_df) {
     )
 }
 
+
+#' ETL for inpatient tables
+#' 
+#' @param An inpatient claims table provided by CMS
+#' 
+#' 
 initial_etl_inpatient <- function(inpatient_df) {
   # maybe do some ETL on the inpatient data.frame
   inpatient_df %>%
     rename_all(tolower)
 }
 
+#' Initial ETL over available tables
+#' 
+#' Given a set of tables (with the strings "bene" and "inpatient" in their names)
+#' 
+#' @param tables A named list of tables
+#' 
 # could make a function factory out of this if needed
 initial_etl <- function(tables) {
   # could:
