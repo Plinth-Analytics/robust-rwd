@@ -41,6 +41,10 @@ bene <- tables$bene08
 
 # Analysis (initial) ======================
 
+# Let's take a patient characteristics table like we normally do
+
+table_one(bene)
+
 # Let's see how cancer diagnosis may affect survival after age 65. Note that we assume:
 #  * patients entered the data at and had conditions diagnosed by age 65
 #  * greater inpatient spending suggests more inpatient care was provided
@@ -58,8 +62,12 @@ coxph(Surv(survival_years, event = death_observed) ~ cncr, data = bene) %>%
 #   * some expectations from the codebook (https://www.cms.gov/files/document/de-10-codebook.pdf-0)
 #   * other expectations we asked the data delivery team to address
 # We'll make this a function so we can run it again
-assess_expectations <- function(tbl) {
-  tbl %>%
+teach_expectations <- function(obj) {
+  cost_columns_gt0 <-
+    c("benres_ip", "pppymt_ip",  "benres_op",
+      "pppymt_op", "medreimb_car", "benres_car", "pppymt_car")
+
+  obj %>%
     # all the rows should be distinct--this is a patient-level table
     rows_distinct() %>%
     col_is_posix(vars(birth_dt, death_dt)) %>%
@@ -86,10 +94,20 @@ assess_expectations <- function(tbl) {
         "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
         "Others"
       )
-    )
+    ) %>%
+    # make sure dollar values are greater than 0 since these are either
+    # reimbursement or responsibility amounts
+    col_vals_gte(all_of(cost_columns_gt0), value = 0) %>%
+    col_vals_gte("medreimb_ip", value = -8000) %>%
+    col_vals_gte("medreimb_op", value = -100)
 }
 
-assess_expectations(bene)
+# can apply expectations to a table, but will look at a different representation of the output
+#teach_expectations(bene)
+
+create_agent(bene, "bene", "Beneficiary data (as-delivered)") %>%
+  teach_expectations() %>%
+  interrogate()
 
 # action taken and reflections on pointblank results =============
 
@@ -123,12 +141,23 @@ age_eligible_beneficiaries <- filter(bene, esrd_ind == 0, survival_years >= 65)
 
 # let's re-run `pointblank` on the updated data
 
-assess_expectations(age_eligible_beneficiaries)
+create_agent(
+  age_eligible_beneficiaries,
+  "age eligible beneficiaries",
+  "Age eligible beneficiaries (post-ETL)"
+  ) %>%
+  teach_expectations() %>%
+  interrogate()
 
 # Analysis on updated data ==========================
 
 # Now that we've done ETL with pointblank in mind, let's do the same analysis again
 
+
+# add table 1 ---
+table_one(age_eligible_beneficiaries)
+
+# do survival analysis ---
 coxph(Surv(survival_years, event = death_observed) ~ cncr, data = age_eligible_beneficiaries) %>%
   broom::tidy(exp = TRUE, conf.int = TRUE)
 
