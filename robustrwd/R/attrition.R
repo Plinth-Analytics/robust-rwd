@@ -22,5 +22,3 @@ step_counter <- function(.df, ...) {
     bind_rows(acc, counter(cr, n_cr))
   }, .init = tibble(description = character(0), n = integer(0)))
 }
-
-

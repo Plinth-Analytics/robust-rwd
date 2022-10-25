@@ -22,15 +22,17 @@ initial_etl_bene <- function(bene_df) {
     rename_all(tolower) %>%
     rename_all(~ gsub("(bene|sp)_", "", .x)) %>%
     mutate_at(
-      c("alzhdmta", "chf", "chrnkidn", "cncr",
+      c(
+        "alzhdmta", "chf", "chrnkidn", "cncr",
         "copd", "depressn", "diabetes", "ischmcht",
-        "osteoprs", "ra_oa", "strketia"),
+        "osteoprs", "ra_oa", "strketia"
+      ),
       ~ .x == 1
     ) %>%
     mutate_at(
       "sex_ident_cd",
       ~ factor_as_string(.x, levels = 1:2, labels = c("Male", "Female"))
-      ) %>%
+    ) %>%
     mutate_at(
       "race_cd",
       ~ factor_as_string(
@@ -44,17 +46,21 @@ initial_etl_bene <- function(bene_df) {
       ~ factor_as_string(
         .x,
         levels =
-          c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10",
-          "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
-          "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32",
-          "33", "34", "35", "36", "37", "38", "39", "41", "42", "43", "44",
-          "45", "46", "47", "49", "50", "51", "52", "53", "54"),
+          c(
+            "01", "02", "03", "04", "05", "06", "07", "08", "09", "10",
+            "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
+            "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32",
+            "33", "34", "35", "36", "37", "38", "39", "41", "42", "43", "44",
+            "45", "46", "47", "49", "50", "51", "52", "53", "54"
+          ),
         labels =
-          c("AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL",
-          "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-          "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM",
-          "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN",
-          "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "Others")
+          c(
+            "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL",
+            "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+            "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM",
+            "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN",
+            "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "Others"
+          )
       )
     ) %>%
     # need to supply a time zone for posix dates
@@ -105,4 +111,3 @@ initial_etl <- function(tables) {
 
   tables
 }
-

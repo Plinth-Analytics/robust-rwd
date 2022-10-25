@@ -34,6 +34,16 @@ tables <-
 
 bene <- tables$bene08
 
+# NP
+#  Add some ORPP variables from tables$inpatient (one row per patient claim / in-patient admission)
+#   has_inpatient Is the patient in the table?
+#   n_inpatient. Number of inpatient claims
+#   days_hospital_mean. Mean number of  clm_utlztn_day_cnt
+#
+
+bene <- bene %>%
+  add_inpatient_visits(inpatient_tbl = tables$inpatient)
+
 # side note:
 # do we need more years to provide important insights? start with something like:
 # bene <- bind_rows(tables[grep("bene", names(tables))])
@@ -64,8 +74,10 @@ coxph(Surv(survival_years, event = death_observed) ~ cncr, data = bene) %>%
 # We'll make this a function so we can run it again
 teach_expectations <- function(obj) {
   cost_columns_gt0 <-
-    c("benres_ip", "pppymt_ip",  "benres_op",
-      "pppymt_op", "medreimb_car", "benres_car", "pppymt_car")
+    c(
+      "benres_ip", "pppymt_ip", "benres_op",
+      "pppymt_op", "medreimb_car", "benres_car", "pppymt_car"
+    )
 
   obj %>%
     # all the rows should be distinct--this is a patient-level table
@@ -103,11 +115,18 @@ teach_expectations <- function(obj) {
 }
 
 # can apply expectations to a table, but will look at a different representation of the output
-#teach_expectations(bene)
+# teach_expectations(bene)
 
-create_agent(bene, "bene", "Beneficiary data (as-delivered)") %>%
+bene_interrogation <- create_agent(bene, "bene", "Beneficiary data (as-delivered)") %>%
   teach_expectations() %>%
   interrogate()
+
+# Print the interrogation
+bene_interrogation
+
+# Explore specific
+bene_interrogation$extracts$XXX
+bene_interrogation$extracts$XXX
 
 # action taken and reflections on pointblank results =============
 
@@ -130,29 +149,34 @@ attrition_table <-
     bene,
     "Doesn't have ESRD" = esrd_ind == 0,
     "65 years of age or older" = survival_years >= 65
-    )
+  )
 
 # look at the attrition table to see how many patients were removed:
 attrition_table
 
-age_eligible_beneficiaries <- filter(bene, esrd_ind == 0, survival_years >= 65)
+age_eligible_beneficiaries <- filter(
+  bene,
+  esrd_ind == 0,
+  survival_years >= 65
+)
 
 # pointblank on updated data =======================
 
 # let's re-run `pointblank` on the updated data
 
-create_agent(
+bene_interrogation_after_attrition <- create_agent(
   age_eligible_beneficiaries,
   "age eligible beneficiaries",
   "Age eligible beneficiaries (post-ETL)"
-  ) %>%
+) %>%
   teach_expectations() %>%
   interrogate()
+
+bene_interrogation_after_attrition
 
 # Analysis on updated data ==========================
 
 # Now that we've done ETL with pointblank in mind, let's do the same analysis again
-
 
 # add table 1 ---
 table_one(age_eligible_beneficiaries)
