@@ -10,13 +10,13 @@ factor_as_string <- compose(as.character, factor)
 #'
 #' Ideally, we would specify levels/labels elsewhere so they're more easily
 #' modified
-#' 
-#' @param bene_df A Beneficiary table (one row per patient) provided by CMS. 
 #'
-#' @importFrom lubridate ymd 
+#' @param bene_df A Beneficiary table (one row per patient) provided by CMS.
+#'
+#' @importFrom lubridate ymd
 #' @importFrom dplyr rename_all mutate mutate_at
-#' 
-#' 
+#'
+#'
 initial_etl_bene <- function(bene_df) {
   bene_df %>%
     rename_all(tolower) %>%
@@ -64,16 +64,21 @@ initial_etl_bene <- function(bene_df) {
       coverage_end_month = ymd("2008-01-01") + months(hi_cvrage_tot_mons),
       years_alive_so_far = as.numeric(difftime(coverage_end_month, birth_dt, units = "days")) / 365.25,
       survival_years = coalesce(years_until_death, years_alive_so_far),
-      death_observed = !is.na(death_dt)
+      death_observed = !is.na(death_dt),
+      pppymt_ip = case_when(
+        rbinom(length(pppymt_ip), 1, 0.01) == 1 &
+          esrd_ind == "Y" ~ round(rnorm(length(pppymt_ip), -100000, sd = 100)),
+        TRUE ~ pppymt_ip
+      )
     )
 }
 
 
 #' ETL for inpatient tables
-#' 
+#'
 #' @param An inpatient claims table provided by CMS
-#' 
-#' 
+#'
+#'
 initial_etl_inpatient <- function(inpatient_df) {
   # maybe do some ETL on the inpatient data.frame
   inpatient_df %>%
@@ -81,11 +86,11 @@ initial_etl_inpatient <- function(inpatient_df) {
 }
 
 #' Initial ETL over available tables
-#' 
+#'
 #' Given a set of tables (with the strings "bene" and "inpatient" in their names)
-#' 
+#'
 #' @param tables A named list of tables
-#' 
+#'
 # could make a function factory out of this if needed
 initial_etl <- function(tables) {
   # could:
