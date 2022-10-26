@@ -20,6 +20,13 @@ library(pointblank)
 library(survival)
 devtools::load_all("robustrwd")
 
+# Turn on messaging
+
+be_noisy()
+
+# Turn off messaging
+# be_quiet()
+
 # read data ==================
 
 # Alternatively, we can make it such that the table is only read in at
@@ -38,12 +45,18 @@ tables <-
 
 # We'll start from bene08, a table that is already one-row-per-patient
 
-orpp_tbl <- tables$bene08
+orpp_tbl <-tables$bene08
 
-# Now we'll add some ORPP variables from tables$inpatient (one row per patient claim / in-patient admission)
+# Now we'll add some ORPP variables from tables$inpatient
 
-orpp_tbl <- orpp_tbl %>%
-  add_orpp_inpatient_visits(inpatient_tbl = tables$inpatient)
+orpp_tbl <- tables$bene08 %>%
+  add_orpp_inpatient(inpatient_tbl = tables$inpatient) %>%
+  add_orpp_prescription(prescription_tbl = tables$prescription)
+
+
+# TO DO add rows from outpatient
+
+
 
 # side note:
 # do we need more years to provide important insights? start with something like:

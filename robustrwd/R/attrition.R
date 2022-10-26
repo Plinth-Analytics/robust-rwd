@@ -1,9 +1,9 @@
 
 #' Factory to create step counters
-#' 
+#'
 #' @importFrom dplyr count filter mutate
 #' @importFrom rlang `!!`
-#' 
+#'
 step_counter_factory <- function(.df) {
   function(criterion, name) {
     .df <<- filter(.df, !!criterion)
@@ -20,9 +20,9 @@ step_counter_factory <- function(.df) {
 #' @importFrom purrr reduce2
 #' @importFrom dplyr bind_rows
 #' @importFrom tibble tibble
-#' 
+#'
 #' @examples step_counter(mtcars, "vs are 1" = vs == 1, "mpg less than 20" = mpg < 20)
-#' 
+#'
 step_counter <- function(.df, ...) {
   # there's something nice about writing "Everyone" = TRUE
   criteria <- append(list("Everyone" = quo(TRUE)), enquos(...))
@@ -41,4 +41,3 @@ apply_inclusion <- function(.df, ...) {
     df = filter(.df, !!!unname(enquos(...)))
   )
 }
-

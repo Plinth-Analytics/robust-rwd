@@ -92,6 +92,18 @@ initial_etl_inpatient <- function(inpatient_df) {
     rename_all(tolower)
 }
 
+
+#' ETL for inpatient tables
+#'
+#' @param An inpatient claims table provided by CMS
+#'
+#'
+initial_etl_prescription <- function(prescription_df) {
+  # maybe do some ETL on the inpatient data.frame
+  prescription_df %>%
+    rename_all(tolower)
+}
+
 #' Initial ETL over available tables
 #'
 #' Given a set of tables (with the strings "bene" and "inpatient" in their names)
@@ -105,10 +117,11 @@ initial_etl <- function(tables) {
   #  * make sure expected tables are present
   # but this may be easier to review
   which_tables <-
-    map(set_names(c("bene", "inpatient")), ~ grep(.x, names(tables), value = TRUE))
+    map(set_names(c("bene", "inpatient", "prescription")), ~ grep(.x, names(tables), value = TRUE))
 
   tables[which_tables$bene] <- map(tables[which_tables$bene], initial_etl_bene)
   tables[which_tables$inpatient] <- map(tables[which_tables$inpatient], initial_etl_inpatient)
+  tables[which_tables$prescription] <- map(tables[which_tables$prescription], initial_etl_prescription)
 
   tables
 }
