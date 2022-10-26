@@ -32,17 +32,18 @@ tables <-
   # see robustrwd/R/initial-etl.R for this ETL
   initial_etl()
 
-bene <- tables$bene08
+# ORPP =======================
 
-# NP
-#  Add some ORPP variables from tables$inpatient (one row per patient claim / in-patient admission)
-#   has_inpatient Is the patient in the table?
-#   n_inpatient. Number of inpatient claims
-#   days_hospital_mean. Mean number of  clm_utlztn_day_cnt
-#
+# Let's create an ORPP table...
 
-bene <- bene %>%
-  add_inpatient_visits(inpatient_tbl = tables$inpatient)
+# We'll start from bene08, a table that is already one-row-per-patient
+
+orpp_tbl <- tables$bene08
+
+# Now we'll add some ORPP variables from tables$inpatient (one row per patient claim / in-patient admission)
+
+orpp_tbl <- orpp_tbl %>%
+  add_orpp_inpatient_visits(inpatient_tbl = tables$inpatient)
 
 # side note:
 # do we need more years to provide important insights? start with something like:
@@ -53,15 +54,17 @@ bene <- bene %>%
 
 # Let's take a patient characteristics table like we normally do
 
-table_one(bene)
+table_one(orpp_tbl)
 
 # Let's see how cancer diagnosis may affect survival after age 65. Note that we assume:
 #  * patients entered the data at and had conditions diagnosed by age 65
 #  * greater inpatient spending suggests more inpatient care was provided
 # scoping out some analyses
 
-coxph(Surv(survival_years, event = death_observed) ~ cncr, data = bene) %>%
+coxph(Surv(survival_years, event = death_observed) ~ cncr, data = orpp_tbl) %>%
   broom::tidy(exp = TRUE, conf.int = TRUE)
+
+# NP: TO DO add survival plots
 
 # Pointblank - first run =================
 
@@ -117,7 +120,7 @@ teach_expectations <- function(obj) {
 # can apply expectations to a table, but will look at a different representation of the output
 # teach_expectations(bene)
 
-bene_interrogation <- create_agent(bene, "bene", "Beneficiary data (as-delivered)") %>%
+bene_interrogation <- create_agent(orpp_tbl, "ORPP", "Beneficiary data (as-delivered)") %>%
   teach_expectations() %>%
   interrogate()
 
@@ -146,7 +149,7 @@ bene_interrogation$extracts$XXX
 
 attrition_table <-
   step_counter(
-    bene,
+    orpp_tbl,
     "Doesn't have ESRD" = esrd_ind == 0,
     "65 years of age or older" = survival_years >= 65
   )
@@ -154,8 +157,12 @@ attrition_table <-
 # look at the attrition table to see how many patients were removed:
 attrition_table
 
-age_eligible_beneficiaries <- filter(
-  bene,
+# NP:  Let's see if there is a clever way to enable users to not have to specify
+#  the criteria again. Something like orpp_tbl %>% apply_inclusion(...)
+#  where ... is the object created from step_counter()
+
+age_eligible_beneficiaries <- orpp_tbl %>%
+  filter(
   esrd_ind == 0,
   survival_years >= 65
 )
@@ -184,6 +191,10 @@ table_one(age_eligible_beneficiaries)
 # do survival analysis ---
 coxph(Surv(survival_years, event = death_observed) ~ cncr, data = age_eligible_beneficiaries) %>%
   broom::tidy(exp = TRUE, conf.int = TRUE)
+
+
+# TO DO: Add survival curve with ggsurvplot
+
 
 # Interesting, our findings are pretty different!
 

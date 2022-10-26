@@ -25,5 +25,5 @@ message_new_vars <- function(data_original,
   vars_new <- colnames(data_out) %>%
     dplyr::setdiff(colnames(data_original))
 
-  cli::cli_alert_info("Added Variables: {crayon::blue(crayon::bold(paste(vars_new, collapse = ', ')))}")
+  cli::cli_alert_info("ORPP | Added Variable(s): {crayon::blue(crayon::bold(paste(vars_new, collapse = ', ')))}")
 }
