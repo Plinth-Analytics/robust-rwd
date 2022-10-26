@@ -38,7 +38,8 @@ add_orpp_inpatient_visits <- function(data,
 
   message_new_vars(
     data_original = data,
-    data_out = data_out
+    data_out = data_out,
+    definition_tbl = definition_tbl
   )
 
   data_out
