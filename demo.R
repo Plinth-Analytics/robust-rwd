@@ -44,17 +44,15 @@ tables <-
 
 # We'll start from bene08, a table that is already one-row-per-patient
 
-orpp_tbl <-tables$bene08
+orpp_tbl <- tables$bene08
 
-# Now we'll add some ORPP variables from tables$inpatient
+# Now we'll add some ORPP variables from tables$inpatient and tables$prescription
 
 orpp_tbl <- tables$bene08 %>%
   add_orpp_inpatient(inpatient_tbl = tables$inpatient) %>%
   add_orpp_prescription(prescription_tbl = tables$prescription)
 
-
 # TO DO add rows from outpatient
-
 
 
 # side note:

@@ -35,7 +35,7 @@ assert_is_inpatient <- function(data) {
   cols_missing <- setdiff(cols_expected, colnames(data))
 
   assertthat::assert_that(length(cols_missing) == 0,
-    msg = glue::glue("Not an inpatient table. The following expected columns are missing {paste(cols_missing, collapse = ', ')}")
+    msg = glue::glue("Does not meet expctations for an inpatient table. The following expected columns are missing {paste(cols_missing, collapse = ', ')}")
   )
 }
 
@@ -58,6 +58,6 @@ assert_is_prescription <- function(data) {
   cols_missing <- setdiff(cols_expected, colnames(data))
 
   assertthat::assert_that(length(cols_missing) == 0,
-    msg = glue::glue("Not a prescription table. The following expected columns are missing {paste(cols_missing, collapse = ', ')}")
+    msg = glue::glue("Does not meet expctations for an inpatient table. The following expected columns are missing {paste(cols_missing, collapse = ', ')}")
   )
 }
