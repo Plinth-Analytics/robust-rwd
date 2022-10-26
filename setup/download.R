@@ -19,7 +19,11 @@ iwalk(
     "bene08" = "DE1_0_2008_Beneficiary_Summary_File_Sample_1.zip",
     "bene09" = "DE1_0_2009_Beneficiary_Summary_File_Sample_1.zip",
     "bene10" = "DE1_0_2010_Beneficiary_Summary_File_Sample_20.zip",
-    "inpatient" = "DE1_0_2008_to_2010_Inpatient_Claims_Sample_1.zip"
+    "inpatient" = "DE1_0_2008_to_2010_Inpatient_Claims_Sample_1.zip",
+    # notably missing carrier claims--not terrible for our purposes
+    "outpatient" = "DE1_0_2008_to_2010_Outpatient_Claims_Sample_1.zip",
+    "prescription" = "DE1_0_2008_to_2010_Prescription_Drug_Events_Sample_1.zip"
   ),
   ~ download.file(url = downloads_url(.x), destfile = destination(.y))
 )
+
