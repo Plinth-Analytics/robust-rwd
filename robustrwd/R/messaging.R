@@ -26,8 +26,10 @@ message_new_vars <- function(data_original,
   vars_new <- colnames(data_out) %>%
     dplyr::setdiff(colnames(data_original))
 
+  vars_new_n <- length(vars_new)
+
   if (!use_definitions) {
-    cli::cli_alert_info("ORPP | Added var(s) from {crayon::bold(crayon::yellow(data_new_source))}: {crayon::blue(crayon::bold(paste(vars_new, collapse = ', ')))}")
+    cli::cli_alert_info("ORPP | Added {crayon::bold(vars_new_n)} var(s) from {crayon::bold(crayon::yellow(data_new_source))}: {crayon::blue(crayon::bold(paste(vars_new, collapse = ', ')))}")
   } else {
     if (is.null(definition_tbl)) {
       definition_tbl <- getOption("definition_tbl")
@@ -45,7 +47,7 @@ message_new_vars <- function(data_original,
 
     names(definitions_new) <- rep("*", length(definitions_new))
 
-    cli::cli_alert_info("ORPP | Added var(s) from {crayon::bold(crayon::yellow(data_new_source))}:")
+    cli::cli_alert_info("ORPP | Added {crayon::bold(vars_new_n)} var(s) from {crayon::bold(crayon::yellow(data_new_source))}:")
 
     cli::cli_bullets(definitions_new)
   }

@@ -1,2 +1,4 @@
 renv/**
 .Rproj.user
+.DS_Store
+robustrwd/.DS_Store

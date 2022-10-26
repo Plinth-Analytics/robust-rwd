@@ -21,7 +21,6 @@ library(survival)
 devtools::load_all("robustrwd")
 
 # Turn on messaging
-
 be_noisy()
 
 # Turn off messaging
