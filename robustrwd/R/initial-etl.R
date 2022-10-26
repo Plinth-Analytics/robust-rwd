@@ -1,4 +1,5 @@
 
+#' @importFrom purrr compose
 factor_as_string <- compose(as.character, factor)
 
 #' Do initial ETL on the beneficiaries table
