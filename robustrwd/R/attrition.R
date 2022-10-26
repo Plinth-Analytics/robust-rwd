@@ -1,5 +1,9 @@
 
-
+#' Factory to create step counters
+#' 
+#' @importFrom dplyr count filter mutate
+#' @importFrom rlang `!!`
+#' 
 step_counter_factory <- function(.df) {
   function(criterion, name) {
     .df <<- filter(.df, !!criterion)
