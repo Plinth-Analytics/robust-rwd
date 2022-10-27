@@ -156,10 +156,13 @@ etl_prescription_01 <- function(prescription_df) {
 #'
 # could make a function factory out of this if needed
 etl_01 <- function(tables) {
-  # could:
-  #  * map over named list of functions
-  #  * make sure expected tables are present
-  # but this may be easier to review
+
+  if (is_noisy()) {
+
+    cli::cli_h1("Applying ETL v01 to data")
+
+  }
+
   which_tables <-
     map(set_names(c("patients", "inpatient", "prescription", "outpatient")), ~ grep(.x, names(tables), value = TRUE))
 

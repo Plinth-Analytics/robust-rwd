@@ -12,7 +12,13 @@ read_folder_csv_zips <- function(folder) {
 }
 
 
-read_data_delivery_01 <- function() {
+receive_delivery_01 <- function() {
+
+  if (is_noisy()) {
+
+    cli::cli_h1("Receiving a delivery labelled as 01 from provider")
+
+  }
 
   list.files("data", pattern = "csv$") %>%
     stringr::str_subset(pattern = "01") %>%
@@ -24,7 +30,7 @@ read_data_delivery_01 <- function() {
     map(~ suppressWarnings({
 
       if (is_noisy()) {
-      cli::cli_alert_info("Receiving {crayon::bold(crayon::magenta(.x))} from provider")
+      cli::cli_alert_info("Received {crayon::bold(crayon::magenta(.x))}")
       }
 
       read_csv(file.path("data", .x), show_col_types = FALSE)
@@ -33,7 +39,13 @@ read_data_delivery_01 <- function() {
 
 }
 
-read_data_delivery_02 <- function() {
+receive_delivery_02 <- function() {
+
+  if (is_noisy()) {
+
+    cli::cli_h1("Receiving a delivery labelled as 02 from provider")
+
+  }
 
   list.files("data", pattern = "csv$") %>%
     stringr::str_subset(pattern = "02") %>%
@@ -45,7 +57,7 @@ read_data_delivery_02 <- function() {
     map(~ suppressWarnings({
 
       if (is_noisy()) {
-        cli::cli_alert_info("Receiving {crayon::bold(crayon::magenta(.x))} from provider")
+        cli::cli_alert_info("Received {crayon::bold(crayon::magenta(.x))}")
       }
       read_csv(file.path("data", .x), show_col_types = FALSE)}
 

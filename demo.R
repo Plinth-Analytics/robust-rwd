@@ -28,7 +28,7 @@ be_noisy()
 #  the source
 
 tables_01 <-
-  read_data_delivery_01()
+  receive_delivery_01()
 
 # Now we'll use etl() to simulate an internal ETL process
 
