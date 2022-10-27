@@ -27,13 +27,13 @@ be_noisy()
 # Use `read_folder_csv_zips()` to read in the raw data as it was delivered from
 #  the source
 
-tables_01 <-
-  receive_delivery_01()
+tables_02 <-
+  receive_delivery_02()
 
 # Now we'll use etl() to simulate an internal ETL process
 
-tables_01_etl <- tables_01 %>%
-  etl_01()
+tables_02_etl <- tables_02 %>%
+  etl_02()
 
 # 2. QC raw data ---------------------------------------------------------------
 
@@ -61,19 +61,13 @@ expectations_patients <- function(obj) {
                  label = "No one born before 01-01-1900",
                  na_pass = TRUE) %>%
 
-    # All dates before 2008
-    col_vals_lt(vars(birth_dt, death_dt),
-                 value = ymd("20090101"),
-                 label = "No one died after 01-01-2009",
-                 na_pass = TRUE) %>%
-
     col_vals_make_set(vars(cncr),
                       set = c(TRUE, FALSE),
                       label = "Expect both patients with and without cancer")
 
 }
 
-patients_interrogation <- create_agent(tables_01_etl$patients,
+patients_interrogation <- create_agent(tables_02_etl$patients,
                                        tbl_name = "Patients",
                                        label = "Patient level table") %>%
   expectations_patients() %>%
@@ -81,7 +75,6 @@ patients_interrogation <- create_agent(tables_01_etl$patients,
 
 patients_interrogation %>%
   summarise_fail()
-
 
 ## 2c Inpatient ================================================================
 
@@ -104,7 +97,8 @@ expectations_inpatient <- function(obj) {
 
 }
 
-inpatient_interroggation <- create_agent(tables_01_etl$inpatient,
+
+inpatient_interroggation <- create_agent(tables_02_etl$inpatient,
                                          tbl_name = "Inpatient",
                                          label = "Inpatient data (Post ETL)") %>%
   expectations_inpatient() %>%
@@ -113,17 +107,17 @@ inpatient_interroggation <- create_agent(tables_01_etl$inpatient,
 inpatient_interroggation %>%
   summarise_fail()
 
-
 # 3. ORPP ----------------------------------------------------------------------
 
 # We'll start from patients, a table that is already one-row-per-patient
 
-orpp_tbl <- tables_01_etl$patients
+orpp_tbl <- tables_02_etl$patients
 
 # Now we'll add some ORPP variables from tables$inpatient and tables$prescription
 
-orpp_tbl <- tables_01_etl$patients %>%
-  add_orpp_inpatient(inpatient_tbl = tables_01_etl$inpatient)
+orpp_tbl <- tables_02_etl$patients %>%
+  add_orpp_inpatient(inpatient_tbl = tables_02_etl$inpatient) %>%
+  add_orpp_prescription(prescription_tbl = tables_02_etl$prescription)
 
 # 4. QC ORPP -------------------------------------------------------------------
 
@@ -136,8 +130,11 @@ orpp_tbl <- tables_01_etl$patients %>%
 attrition_table <-
   step_counter(
     orpp_tbl,
-    "Doesn't have ESRD" = esrd_ind == 0,
-    "65 years of age or older" = survival_years >= 65
+    "Race is white or black" = race_cd %in% c("White", "Black"),
+    "Has Diabetes" = diabetes == TRUE,
+    "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
+    "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
+    "18 years of age or older" = survival_years >= 18
   )
 
 # look at the attrition table to see how many patients were removed:
@@ -145,10 +142,13 @@ attrition_table
 
 # 5c. Apply attrition criteria to orpp tble ====================================
 
-age_eligible_beneficiaries <- orpp_tbl %>%
+cohort_tbl <- orpp_tbl %>%
   filter(
-    esrd_ind == 0,
-    survival_years >= 65
+    race_cd %in% c("White", "Black"),
+    diabetes == TRUE,
+    inpatient_payment_median >= 10000,
+    prescription_rx_cost_median > 20,
+    survival_years >= 18
   )
 
 # 6. Analyses ------------------------------------------------------------------
@@ -157,7 +157,7 @@ age_eligible_beneficiaries <- orpp_tbl %>%
 
 # Look at overall patient character istics
 
-table_one(orpp_tbl)
+table_one(cohort_tbl)
 
 ## 6b. Survival analysis--------------------------------------------------------
 
@@ -166,25 +166,9 @@ table_one(orpp_tbl)
 #  * greater inpatient spending suggests more inpatient care was provided
 # scoping out some analyses
 
-coxph(Surv(survival_years, event = death_observed) ~ cncr,
-      data = orpp_tbl) %>%
-  broom::tidy(exp = TRUE, conf.int = TRUE)
+fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
+               data = cohort_tbl)
 
-
-# action taken and reflections on pointblank results =============
-
-# The team that provided you data did a great job, but `pointblank`
-# revealed there are some things about the data that still need to be done.
-#
-# It looks like there are people younger than 65 years in this dataset!
-# This is because (1) CMS also Medicare also covers patients who have end-stage disease,
-# no matter their age and (2) there's probably something else going on.
-
-# Now that we know these data reflect patients who are not age-eligible for Medicare,
-# let's filter to the population who we intend to investigate. ESRD could be one reason for
-# Medicare coverage, but there are others so we'll just filter out patients who are under
-# 65 years of age at the time these data were taken.
-#
-# We'll start by making an attrition table to report this filtering:
+ggsurvplot(fit, conf.int = TRUE, surv.median.line = "hv")
 
 

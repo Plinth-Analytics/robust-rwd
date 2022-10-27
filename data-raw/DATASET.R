@@ -33,7 +33,6 @@ iwalk(
   ~ download.file(url = downloads_url(.x), destfile = destination(.y))
 )
 
-
 download.file(
   url = "http://downloads.cms.gov/files/DE1_0_2008_to_2010_Prescription_Drug_Events_Sample_1.zip",
   destfile = destination("prescription")
@@ -66,7 +65,6 @@ inpatient_01 <- tables_01$inpatient
 outpatient_01 <- tables_01$outpatient
 prescription_01 <- tables_01$prescription
 
-
 # Inject problems ---------------------------------------------------------
 
 patients_01 <- patients_01 %>%
@@ -96,6 +94,30 @@ patients_02 <- tables_02$bene08
 inpatient_02 <- tables_02$inpatient
 outpatient_02 <- tables_02$outpatient
 prescription_02 <- tables_02$prescription
+
+patients_02 <- patients_02 %>%
+
+  mutate(multiplier = case_when(
+    BENE_RACE_CD == 2 ~ 40,
+    TRUE ~ 50)) %>%
+
+  mutate(daysafterdeath =  365 * multiplier + rnorm(10000, mean = 0, sd = 4000)) %>%
+
+  mutate(BENE_DEATH_DT = lubridate::ymd(BENE_BIRTH_DT) + daysafterdeath) %>%
+  mutate(BENE_DEATH_DT = case_when(
+    BENE_DEATH_DT >= ymd("2008-12-31") ~ NA_Date_,
+    TRUE ~ BENE_DEATH_DT
+  )) %>%
+  mutate(BENE_DEATH_DT = as.numeric(stringr::str_remove_all(as.character(BENE_DEATH_DT), "-")))
+
+patients_02$BENE_DEATH_DT[sample(10000, size = 2000)] <- NA
+
+
+
+patients_02 %>%
+  mutate(survival = as.numeric(lubridate::ymd(BENE_DEATH_DT) - lubridate::ymd(BENE_BIRTH_DT))) %>%
+  group_by(BENE_RACE_CD) %>%
+  summarise(surv_mean = mean(survival / 365, na.rm = TRUE), N = n())
 
 readr::write_csv(patients_02, file = "data/patients02.csv")
 readr::write_csv(inpatient_02, file = "data/inpatient02.csv")

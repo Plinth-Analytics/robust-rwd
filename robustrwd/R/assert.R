@@ -50,13 +50,13 @@ assert_is_inpatient <- function(data) {
 assert_is_prescription <- function(data) {
   # Minimal expectations of included columns
   cols_expected <- c(
-    "desynpuf_id", "pde_id", "srvc_dt", "prod_srvc_id", "qty_dspnsd_num",
+    "desynpuf_id", "pde_id", "srvc_dt",
     "days_suply_num", "ptnt_pay_amt", "tot_rx_cst_amt"
   )
 
   cols_missing <- setdiff(cols_expected, colnames(data))
 
   assertthat::assert_that(length(cols_missing) == 0,
-    msg = glue::glue("Does not meet expctations for an inpatient table. The following expected columns are missing {paste(cols_missing, collapse = ', ')}")
+    msg = glue::glue("Does not meet expctations for an prescription table. The following expected columns are missing {paste(cols_missing, collapse = ', ')}")
   )
 }
