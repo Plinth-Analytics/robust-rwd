@@ -1,30 +1,20 @@
-# This script will make sure we have the right packages installed.
-# You may see a warning if your version of R is different--this will
-# probably not make a difference to your findings, but if anything is
-# particularly concerning then consider look here to revise
+# 0. Setup ---------------------------------------------------------------------
+
+# Install packages (utilizing renv)
 source("setup/packages.R")
 
-# Note:
-# * Since they're zips, it's unfortunately necessary to download files
-#   before reading them rather than reading from the url--remotely reading
-#   isn't supported
-# * This script is not lazy--it will download the data regardless of whether
-#   any files are present, and will overwrite existing files
-# * We only check if the "data" folder exists before deciding whether to
-#   download
+# Download data (may not be needed now that files are committed to the repo)
 if (!dir.exists("data")) source("setup/download.R")
 
+# Load libraries
 library(tidyverse)
 library(pointblank)
 library(survival)
 
-
 # Load the robustrwd package
 devtools::load_all("robustrwd")
 
-
-# 0. Params --------------------------------------------------------------------
-
+# 0a Params ====================================================================
 # Turn on messaging
 be_noisy()
 
@@ -44,9 +34,9 @@ tables_raw <-
 tables_post_etl <- tables_raw %>%
   initial_etl()
 
-# 2. Define QC on raw data -----------------------------------------------------
+# 2. QC raw data ---------------------------------------------------------------
 
-## Bene08
+## 2b Bene08 ===================================================================
 
 expectations_bene <- function(obj) {
 
@@ -88,7 +78,7 @@ bene_interroggation <- create_agent(tables_post_etl$bene08,
   expectations_bene() %>%
   interrogate()
 
-## Inpatient ===================================================================
+## 2c Inpatient ================================================================
 
 expectations_inpatient <- function(obj) {
 
@@ -105,11 +95,7 @@ expectations_inpatient <- function(obj) {
     # Is the claim payment amount greater than 0?
     col_vals_gte(vars(clm_pmt_amt),
                  value = 0,
-                 label = "Claim payment amount is positive") %>%
-
-    # Are claim IDs all unique?
-    rows_distinct(vars(clm_id),
-                  label = "Claim IDs are distinct")
+                 label = "Claim payment amount is positive")
 
 }
 
@@ -121,8 +107,6 @@ inpatient_interroggation <- create_agent(tables_post_etl$inpatient,
 
 # 3. ORPP ----------------------------------------------------------------------
 
-# Let's create an ORPP table...
-
 # We'll start from bene08, a table that is already one-row-per-patient
 
 orpp_tbl <- tables_post_etl$bene08
@@ -132,11 +116,41 @@ orpp_tbl <- tables_post_etl$bene08
 orpp_tbl <- tables_post_etl$bene08 %>%
   add_orpp_inpatient(inpatient_tbl = tables_post_etl$inpatient)
 
-# Analysis (initial) ======================
+# 4. QC ORPP -------------------------------------------------------------------
 
-# Let's take a patient characteristics table like we normally do
+# ...
+
+# 5. Cohort definition and Attrition -------------------------------------------
+
+# 5b. Create attrition table ===================================================
+
+attrition_table <-
+  step_counter(
+    orpp_tbl,
+    "Doesn't have ESRD" = esrd_ind == 0,
+    "65 years of age or older" = survival_years >= 65
+  )
+
+# look at the attrition table to see how many patients were removed:
+attrition_table
+
+# 5c. Apply attrition criteria to orpp tble ====================================
+
+age_eligible_beneficiaries <- orpp_tbl %>%
+  filter(
+    esrd_ind == 0,
+    survival_years >= 65
+  )
+
+# 6. Analyses ------------------------------------------------------------------
+
+## 6a. Table 1 -----------------------------------------------------------------
+
+# Look at overall patient character istics
 
 table_one(orpp_tbl)
+
+## 6b. Survival analysis--------------------------------------------------------
 
 # Let's see how cancer diagnosis may affect survival after age 65. Note that we assume:
 #  * patients entered the data at and had conditions diagnosed by age 65
@@ -147,7 +161,6 @@ coxph(Surv(survival_years, event = death_observed) ~ cncr,
       data = orpp_tbl) %>%
   broom::tidy(exp = TRUE, conf.int = TRUE)
 
-# NP Oct 26: I STOPPED HERE
 
 # action taken and reflections on pointblank results =============
 
@@ -164,29 +177,5 @@ coxph(Surv(survival_years, event = death_observed) ~ cncr,
 # 65 years of age at the time these data were taken.
 #
 # We'll start by making an attrition table to report this filtering:
-
-attrition_table <-
-  step_counter(
-    orpp_tbl,
-    "Doesn't have ESRD" = esrd_ind == 0,
-    "65 years of age or older" = survival_years >= 65
-  )
-
-# look at the attrition table to see how many patients were removed:
-attrition_table
-
-# NP:  Let's see if there is a clever way to enable users to not have to specify
-#  the criteria again. Something like orpp_tbl %>% apply_inclusion(...)
-#  where ... is the object created from step_counter()
-
-age_eligible_beneficiaries <- orpp_tbl %>%
-  filter(
-  esrd_ind == 0,
-  survival_years >= 65
-)
-
-age_eligible_beneficiaries <- orpp_tbl %>%
-  apply_inclusion( esrd_ind == 0,
-                   survival_years >= 65)
 
 
