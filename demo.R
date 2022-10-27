@@ -18,7 +18,12 @@ library(tidyverse)
 library(pointblank)
 library(survival)
 
+
+# Load the robustrwd package
 devtools::load_all("robustrwd")
+
+
+# 0. Params --------------------------------------------------------------------
 
 # Turn on messaging
 be_noisy()
@@ -42,6 +47,46 @@ tables_post_etl <- tables_raw %>%
 # 2. Define QC on raw data -----------------------------------------------------
 
 ## Bene08
+
+expectations_bene <- function(obj) {
+
+  obj %>%
+
+    # do the columns desynpuf_id and clm_admsn_dt exist?
+    col_exists(vars(desynpuf_id, birth_dt, death_dt, sex_ident_cd, race_cd, cncr, diabetes),
+               label = "Key columns exist") %>%
+
+    # Are claim IDs all unique?
+    rows_distinct(vars(desynpuf_id),
+                  label = "Table is ORPP") %>%
+
+    # Is the claim from date and claim through date column(s) both dates?
+    col_is_date(vars(birth_dt, death_dt),
+                label = "Date columns are valid dates") %>%
+
+    # Is the claim from date and claim through date column(s) both dates?
+    col_is_date(vars(birth_dt, death_dt),
+                label = "Date columns are valid dates") %>%
+
+    # All dates after 1900
+    col_vals_gt(vars(birth_dt, death_dt),
+                 value = ymd("19000101"),
+                 label = "All dates after 01-01",
+                 na_pass = TRUE) %>%
+
+    # All dates before 2008
+    col_vals_lt(vars(birth_dt, death_dt),
+                 value = ymd("20090101"),
+                 label = "All dates before 01-01-2009",
+                 na_pass = TRUE)
+
+}
+
+bene_interroggation <- create_agent(tables_post_etl$bene08,
+                                         tbl_name = "Bene",
+                                         label = "Patient level table") %>%
+  expectations_bene() %>%
+  interrogate()
 
 ## Inpatient ===================================================================
 
@@ -139,4 +184,9 @@ age_eligible_beneficiaries <- orpp_tbl %>%
   esrd_ind == 0,
   survival_years >= 65
 )
+
+age_eligible_beneficiaries <- orpp_tbl %>%
+  apply_inclusion( esrd_ind == 0,
+                   survival_years >= 65)
+
 

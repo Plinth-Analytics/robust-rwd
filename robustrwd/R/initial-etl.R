@@ -65,7 +65,7 @@ initial_etl_bene <- function(bene_df) {
       )
     ) %>%
     # need to supply a time zone for posix dates
-    mutate_at(c("birth_dt", "death_dt"), ymd, tz = "UTC") %>%
+    mutate_at(c("birth_dt", "death_dt"), ymd) %>%
     mutate(
       years_until_death = as.numeric(difftime(death_dt, birth_dt, units = "days")) / 365.25,
       coverage_end_month = ymd("2008-01-01") + months(hi_cvrage_tot_mons),
