@@ -65,6 +65,11 @@ inpatient_01 <- tables_01$inpatient
 outpatient_01 <- tables_01$outpatient
 prescription_01 <- tables_01$prescription
 
+# remove prescription info from after 2008
+
+prescription_01 <- prescription_01 %>%
+  filter(SRVC_DT <= 20090000)
+
 # Inject problems ---------------------------------------------------------
 
 patients_01 <- patients_01 %>%
@@ -76,7 +81,10 @@ patients_01 <- patients_01 %>%
   mutate(BENE_DEATH_DT = NA_Date_)
 
 # 20 patients are born before 1800
-patients_01$BENE_BIRTH_DT[sample(1:10000, 20)] <- sample(17000101:17000131, size = 20)
+patients_01$BENE_BIRTH_DT[sample(1:nrow(patients_01), 20)] <- sample(17000101:17000131, size = 20)
+
+# 100 random claim payment amounts are -10000
+inpatient_01$CLM_PMT_AMT[sample(1:nrow(inpatient_01), 100)] <- sample(-(10000:30000), size = 100)
 
 readr::write_csv(patients_01, file = "data/patients01.csv")
 readr::write_csv(inpatient_01, file = "data/inpatient01.csv")
@@ -95,6 +103,10 @@ inpatient_02 <- tables_02$inpatient
 outpatient_02 <- tables_02$outpatient
 prescription_02 <- tables_02$prescription
 
+# remove prescription info from after 2008
+prescription_02 <- prescription_01 %>%
+  filter(SRVC_DT <= 20090000)
+
 patients_02 <- patients_02 %>%
 
   mutate(multiplier = case_when(
@@ -108,11 +120,13 @@ patients_02 <- patients_02 %>%
     BENE_DEATH_DT >= ymd("2008-12-31") ~ NA_Date_,
     TRUE ~ BENE_DEATH_DT
   )) %>%
-  mutate(BENE_DEATH_DT = as.numeric(stringr::str_remove_all(as.character(BENE_DEATH_DT), "-")))
+  mutate(BENE_DEATH_DT = as.numeric(stringr::str_remove_all(as.character(BENE_DEATH_DT), "-"))) %>%
+  mutate(BENE_DEATH_DT = case_when(
+    BENE_BIRTH_DT > BENE_DEATH_DT ~ BENE_DEATH_DT,
+    TRUE ~ BENE_DEATH_DT
+  ))
 
 patients_02$BENE_DEATH_DT[sample(10000, size = 2000)] <- NA
-
-
 
 patients_02 %>%
   mutate(survival = as.numeric(lubridate::ymd(BENE_DEATH_DT) - lubridate::ymd(BENE_BIRTH_DT))) %>%
