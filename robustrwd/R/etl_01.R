@@ -19,6 +19,12 @@ factor_as_string <- compose(as.character, factor)
 #'
 #'
 etl_patients_01 <- function(bene_df) {
+
+  if (is_noisy()) {
+
+    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('patients'))} table")
+  }
+
   bene_df %>%
     rename_all(tolower) %>%
     rename_all(~ gsub("(bene|sp)_", "", .x)) %>%
@@ -90,6 +96,12 @@ etl_patients_01 <- function(bene_df) {
 #'
 #'
 etl_inpatient_01 <- function(inpatient_df) {
+
+  if (is_noisy()) {
+
+    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('inpatient'))} table")
+  }
+
   # maybe do some ETL on the inpatient data.frame
   inpatient_df %>%
     rename_all(tolower) %>%
@@ -103,6 +115,12 @@ etl_inpatient_01 <- function(inpatient_df) {
 #'
 #'
 etl_outpatient_01 <- function(outpatient_df) {
+
+  if (is_noisy()) {
+
+    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('outpatient'))} table")
+  }
+
   # maybe do some ETL on the inpatient data.frame
   outpatient_df %>%
     rename_all(tolower) %>%
@@ -116,6 +134,13 @@ etl_outpatient_01 <- function(outpatient_df) {
 #'
 #'
 etl_prescription_01 <- function(prescription_df) {
+
+  if (is_noisy()) {
+
+    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('prescription'))} table")
+  }
+
+
   # maybe do some ETL on the inpatient data.frame
   prescription_df %>%
     rename_all(tolower)%>%
@@ -139,8 +164,11 @@ etl_01 <- function(tables) {
     map(set_names(c("patients", "inpatient", "prescription", "outpatient")), ~ grep(.x, names(tables), value = TRUE))
 
   tables[which_tables$patients] <- map(tables[which_tables$patients], etl_patients_01)
+
   tables[which_tables$inpatient] <- map(tables[which_tables$inpatient], etl_inpatient_01)
+
   tables[which_tables$prescription] <- map(tables[which_tables$prescription], etl_prescription_01)
+
   tables[which_tables$outpatient] <- map(tables[which_tables$outpatient], etl_outpatient_01)
 
   tables

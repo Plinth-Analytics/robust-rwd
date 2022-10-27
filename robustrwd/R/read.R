@@ -21,7 +21,15 @@ read_data_delivery_01 <- function() {
                 stringr::str_remove_all(., ".csv") %>%
                 stringr::str_remove_all("01"))
     } %>%
-    map(~ suppressWarnings({read_csv(file.path("data", .x), show_col_types = FALSE)}))
+    map(~ suppressWarnings({
+
+      if (is_noisy()) {
+      cli::cli_alert_info("Receiving {crayon::bold(crayon::magenta(.x))} from provider")
+      }
+
+      read_csv(file.path("data", .x), show_col_types = FALSE)
+
+      }))
 
 }
 
@@ -34,6 +42,13 @@ read_data_delivery_02 <- function() {
                 stringr::str_remove_all(., ".csv") %>%
                   stringr::str_remove_all("02"))
     } %>%
-    map(~ suppressWarnings({read_csv(file.path("data", .x), show_col_types = FALSE)}))
+    map(~ suppressWarnings({
+
+      if (is_noisy()) {
+        cli::cli_alert_info("Receiving {crayon::bold(crayon::magenta(.x))} from provider")
+      }
+      read_csv(file.path("data", .x), show_col_types = FALSE)}
+
+      ))
 
 }
