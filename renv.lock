@@ -192,6 +192,25 @@
         "tidyr"
       ]
     },
+    "broom.helpers": {
+      "Package": "broom.helpers",
+      "Version": "1.9.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "d9413c4a2cb1dcd4e4a851d290323591",
+      "Requirements": [
+        "broom",
+        "cli",
+        "dplyr",
+        "labelled",
+        "lifecycle",
+        "purrr",
+        "rlang",
+        "stringr",
+        "tibble",
+        "tidyr"
+      ]
+    },
     "bslib": {
       "Package": "bslib",
       "Version": "0.4.0",
@@ -718,6 +737,29 @@
       "Hash": "36b4265fb818f6a342bed217549cd896",
       "Requirements": []
     },
+    "gtsummary": {
+      "Package": "gtsummary",
+      "Version": "1.6.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "853727ca1318bc9c51b7f3cee5367dc8",
+      "Requirements": [
+        "broom",
+        "broom.helpers",
+        "cli",
+        "dplyr",
+        "forcats",
+        "glue",
+        "gt",
+        "knitr",
+        "lifecycle",
+        "purrr",
+        "rlang",
+        "stringr",
+        "tibble",
+        "tidyr"
+      ]
+    },
     "haven": {
       "Package": "haven",
       "Version": "2.5.1",
@@ -889,6 +931,22 @@
       "Repository": "CRAN",
       "Hash": "3d5108641f47470611a32d0bdf357a72",
       "Requirements": []
+    },
+    "labelled": {
+      "Package": "labelled",
+      "Version": "2.10.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1c444c7fe66cebddc0e6e3e2a5ca37c1",
+      "Requirements": [
+        "dplyr",
+        "haven",
+        "lifecycle",
+        "rlang",
+        "stringr",
+        "tidyr",
+        "vctrs"
+      ]
     },
     "later": {
       "Package": "later",

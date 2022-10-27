@@ -3,13 +3,11 @@
 # Install packages (utilizing renv)
 source("setup/packages.R")
 
-# Download data (may not be needed now that files are committed to the repo)
-if (!dir.exists("data")) source("setup/download.R")
-
 # Load libraries
 library(tidyverse)
 library(pointblank)
 library(survival)
+library(gtsummary)
 
 # Load the robustrwd package
 devtools::load_all("robustrwd")
@@ -27,13 +25,13 @@ be_noisy()
 # Use `read_folder_csv_zips()` to read in the raw data as it was delivered from
 #  the source
 
-tables_02 <-
-  receive_delivery_02()
+tables_01 <-
+  receive_delivery_01()
 
 # Now we'll use etl() to simulate an internal ETL process
 
-tables_02_etl <- tables_02 %>%
-  etl_02()
+tables_01_etl <- tables_01 %>%
+  etl_01()
 
 # 2. QC raw data ---------------------------------------------------------------
 
@@ -67,14 +65,29 @@ expectations_patients <- function(obj) {
 
 }
 
-patients_interrogation <- create_agent(tables_02_etl$patients,
+patients_interrogation <- create_agent(tables_01_etl$patients,
                                        tbl_name = "Patients",
                                        label = "Patient level table") %>%
   expectations_patients() %>%
   interrogate()
 
+# Print result
+patients_interrogation
+
+# See the
 patients_interrogation %>%
   summarise_fail()
+
+# Not working rightnow and not sure why
+# patients_interrogation %>%
+#   get_sundered_data()
+
+
+
+
+
+
+
 
 ## 2c Inpatient ================================================================
 
@@ -97,15 +110,20 @@ expectations_inpatient <- function(obj) {
 
 }
 
-
-inpatient_interroggation <- create_agent(tables_02_etl$inpatient,
+inpatient_interroggation <- create_agent(tables_01_etl$inpatient,
                                          tbl_name = "Inpatient",
                                          label = "Inpatient data (Post ETL)") %>%
   expectations_inpatient() %>%
   interrogate()
 
+## Summarise the number of failures for each test
 inpatient_interroggation %>%
   summarise_fail()
+
+inpatient_interroggation %>%
+  get_sundered_data(type = "fail")
+
+
 
 # 3. ORPP ----------------------------------------------------------------------
 
@@ -170,5 +188,4 @@ fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
                data = cohort_tbl)
 
 ggsurvplot(fit, conf.int = TRUE, surv.median.line = "hv")
-
 
