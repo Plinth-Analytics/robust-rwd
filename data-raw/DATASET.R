@@ -7,6 +7,7 @@
 
 library(purrr)
 library(dplyr)
+library(lubridate)
 
 downloads_url <- function(which_file) {
   paste(
@@ -65,12 +66,24 @@ inpatient_01 <- tables_01$inpatient
 outpatient_01 <- tables_01$outpatient
 prescription_01 <- tables_01$prescription
 
+
+# Inject problems ---------------------------------------------------------
+
+patients_01 <- patients_01 %>%
+
+  #  No patients have cancer
+  mutate(SP_CNCR = FALSE) %>%
+
+  # No patients have death dates
+  mutate(BENE_DEATH_DT = NA_Date_)
+
+# 20 patients are born before 1800
+patients_01$BENE_BIRTH_DT[sample(1:10000, 20)] <- sample(17000101:17000131, size = 20)
+
 readr::write_csv(patients_01, file = "data/patients01.csv")
 readr::write_csv(inpatient_01, file = "data/inpatient01.csv")
 readr::write_csv(outpatient_01, file = "data/outpatient01.csv")
 readr::write_csv(prescription_01, file = "data/prescription01.csv")
-
-
 
 # Data 02 ======================================================================
 

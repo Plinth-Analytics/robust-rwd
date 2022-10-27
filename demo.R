@@ -55,26 +55,26 @@ expectations_patients <- function(obj) {
     col_is_date(vars(birth_dt, death_dt),
                 label = "Date columns are valid dates") %>%
 
-    # Is the claim from date and claim through date column(s) both dates?
-    col_is_date(vars(birth_dt, death_dt),
-                label = "Date columns are valid dates") %>%
-
     # All dates after 1900
     col_vals_gt(vars(birth_dt, death_dt),
                  value = ymd("19000101"),
-                 label = "All dates after 01-01",
+                 label = "No one born before 01-01-1900",
                  na_pass = TRUE) %>%
 
     # All dates before 2008
     col_vals_lt(vars(birth_dt, death_dt),
                  value = ymd("20090101"),
-                 label = "All dates before 01-01-2009",
-                 na_pass = TRUE)
+                 label = "No one died after 01-01-2009",
+                 na_pass = TRUE) %>%
+
+    col_vals_make_set(vars(cncr),
+                      set = c(TRUE, FALSE),
+                      label = "Expect both patients with and without cancer")
 
 }
 
 patients_interrogation <- create_agent(tables_01_etl$patients,
-                                       tbl_name = "Bene",
+                                       tbl_name = "Patients",
                                        label = "Patient level table") %>%
   expectations_patients() %>%
   interrogate()
@@ -82,7 +82,9 @@ patients_interrogation <- create_agent(tables_01_etl$patients,
 patients_interrogation %>%
   summarise_fail()
 
+
 ## 2c Inpatient ================================================================
+
 expectations_inpatient <- function(obj) {
 
   obj %>%
