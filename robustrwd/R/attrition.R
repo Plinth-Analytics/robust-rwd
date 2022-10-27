@@ -30,7 +30,10 @@ step_counter <- function(.df, ...) {
 
   reduce2(criteria, names(criteria), function(acc, cr, n_cr) {
     bind_rows(acc, counter(cr, n_cr))
-  }, .init = tibble(description = character(0), n = integer(0)))
+  }, .init = tibble(description = character(0), n = integer(0))) %>%
+
+    dplyr::mutate(n_dropped = n - lag(n, 1))
+
 }
 
 #' @importFrom dplyr filter
