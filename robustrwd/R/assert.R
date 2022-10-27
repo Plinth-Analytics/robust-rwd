@@ -28,8 +28,7 @@ assert_is_orpp <- function(data,
 assert_is_inpatient <- function(data) {
   # Minimal expectations of included columns
   cols_expected <- c(
-    "desynpuf_id", "clm_id", "segment", "clm_from_dt", "clm_thru_dt",
-    "prvdr_num", "clm_pmt_amt", "nch_prmry_pyr_clm_pd_amt", "at_physn_npi"
+    "desynpuf_id", "clm_id", "clm_from_dt", "clm_thru_dt", "clm_pmt_amt", "prvdr_num"
   )
 
   cols_missing <- setdiff(cols_expected, colnames(data))

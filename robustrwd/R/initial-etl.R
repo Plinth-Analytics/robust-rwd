@@ -77,9 +77,12 @@ initial_etl_bene <- function(bene_df) {
           esrd_ind == "Y" ~ round(rnorm(length(pppymt_ip), -100000, sd = 100)),
         TRUE ~ pppymt_ip
       )
-    )
+    ) %>%
+    select(desynpuf_id, birth_dt, death_dt, sex_ident_cd, race_cd,
+           esrd_ind, hi_cvrage_tot_mons, pppymt_ip, diabetes, cncr,
+           years_until_death, coverage_end_month, years_alive_so_far, survival_years,
+           death_observed)
 }
-
 
 #' ETL for inpatient tables
 #'
@@ -89,9 +92,23 @@ initial_etl_bene <- function(bene_df) {
 initial_etl_inpatient <- function(inpatient_df) {
   # maybe do some ETL on the inpatient data.frame
   inpatient_df %>%
-    rename_all(tolower)
+    rename_all(tolower) %>%
+    mutate(across(ends_with("dt"), ~ lubridate::ymd(.x))) %>%
+    select(desynpuf_id, clm_id, clm_from_dt, clm_thru_dt, clm_pmt_amt, prvdr_num)
 }
 
+#' ETL for outpatient tables
+#'
+#' @param An inpatient claims table provided by CMS
+#'
+#'
+initial_etl_outpatient <- function(outpatient_df) {
+  # maybe do some ETL on the inpatient data.frame
+  outpatient_df %>%
+    rename_all(tolower) %>%
+    mutate(across(ends_with("dt"), ~ lubridate::ymd(.x))) %>%
+    select(desynpuf_id, clm_id, clm_from_dt, clm_thru_dt, clm_pmt_amt, prvdr_num)
+}
 
 #' ETL for inpatient tables
 #'
@@ -101,8 +118,12 @@ initial_etl_inpatient <- function(inpatient_df) {
 initial_etl_prescription <- function(prescription_df) {
   # maybe do some ETL on the inpatient data.frame
   prescription_df %>%
-    rename_all(tolower)
+    rename_all(tolower)%>%
+    mutate(across(ends_with("dt"), ~ lubridate::ymd(.x))) %>%
+    select(desynpuf_id, pde_id, srvc_dt, days_suply_num, ptnt_pay_amt, tot_rx_cst_amt)
 }
+
+
 
 #' Initial ETL over available tables
 #'
@@ -117,11 +138,12 @@ initial_etl <- function(tables) {
   #  * make sure expected tables are present
   # but this may be easier to review
   which_tables <-
-    map(set_names(c("bene", "inpatient", "prescription")), ~ grep(.x, names(tables), value = TRUE))
+    map(set_names(c("bene", "inpatient", "prescription", "outpatient")), ~ grep(.x, names(tables), value = TRUE))
 
   tables[which_tables$bene] <- map(tables[which_tables$bene], initial_etl_bene)
   tables[which_tables$inpatient] <- map(tables[which_tables$inpatient], initial_etl_inpatient)
   tables[which_tables$prescription] <- map(tables[which_tables$prescription], initial_etl_prescription)
+  tables[which_tables$outpatient] <- map(tables[which_tables$outpatient], initial_etl_outpatient)
 
   tables
 }

@@ -23,8 +23,7 @@ add_orpp_inpatient <- function(data,
       inpatient_claims_n = dplyr::n(),
       inpatient_payment_median = median(clm_pmt_amt),
       inpatient_payment_min = min(clm_pmt_amt),
-      inpatient_payment_max = max(clm_pmt_amt),
-      claims_days_median = median(clm_utlztn_day_cnt)
+      inpatient_payment_max = max(clm_pmt_amt)
     )
 
   data_out <- data %>%
