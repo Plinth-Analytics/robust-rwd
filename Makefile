@@ -1,5 +1,5 @@
 
-all: setup_env initial_etl
+all: setup_env etl
 
 setup_env: packages data 
 

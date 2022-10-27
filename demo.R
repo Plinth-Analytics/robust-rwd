@@ -26,19 +26,19 @@ be_noisy()
 # Use `read_folder_csv_zips()` to read in the raw data as it was delivered from
 #  the source
 
-tables_raw <-
-  read_folder_csv_zips("data")
+tables_01 <-
+  read_data_delivery_01()
 
-# Now we'll use initial_etl() to simulate an internal ETL process
+# Now we'll use etl() to simulate an internal ETL process
 
-tables_post_etl <- tables_raw %>%
-  initial_etl()
+tables_01_etl <- tables_01 %>%
+  etl_01()
 
 # 2. QC raw data ---------------------------------------------------------------
 
-## 2b Bene08 ===================================================================
+## 2b patients ===================================================================
 
-expectations_bene <- function(obj) {
+expectations_patients <- function(obj) {
 
   obj %>%
 
@@ -72,14 +72,16 @@ expectations_bene <- function(obj) {
 
 }
 
-bene_interroggation <- create_agent(tables_post_etl$bene08,
-                                         tbl_name = "Bene",
-                                         label = "Patient level table") %>%
-  expectations_bene() %>%
+patients_interrogation <- create_agent(tables_01_etl$patients,
+                                       tbl_name = "Bene",
+                                       label = "Patient level table") %>%
+  expectations_patients() %>%
   interrogate()
 
-## 2c Inpatient ================================================================
+patients_interrogation %>%
+  summarise_fail()
 
+## 2c Inpatient ================================================================
 expectations_inpatient <- function(obj) {
 
   obj %>%
@@ -99,22 +101,26 @@ expectations_inpatient <- function(obj) {
 
 }
 
-inpatient_interroggation <- create_agent(tables_post_etl$inpatient,
+inpatient_interroggation <- create_agent(tables_01_etl$inpatient,
                                          tbl_name = "Inpatient",
                                          label = "Inpatient data (Post ETL)") %>%
   expectations_inpatient() %>%
   interrogate()
 
+inpatient_interroggation %>%
+  summarise_fail()
+
+
 # 3. ORPP ----------------------------------------------------------------------
 
-# We'll start from bene08, a table that is already one-row-per-patient
+# We'll start from patients, a table that is already one-row-per-patient
 
-orpp_tbl <- tables_post_etl$bene08
+orpp_tbl <- tables_01_etl$patients
 
 # Now we'll add some ORPP variables from tables$inpatient and tables$prescription
 
-orpp_tbl <- tables_post_etl$bene08 %>%
-  add_orpp_inpatient(inpatient_tbl = tables_post_etl$inpatient)
+orpp_tbl <- tables_01_etl$patients %>%
+  add_orpp_inpatient(inpatient_tbl = tables_01_etl$inpatient)
 
 # 4. QC ORPP -------------------------------------------------------------------
 
