@@ -71,14 +71,27 @@ expectations_inpatient <- function(agent) {
 #' @return ptblank_agent
 #'
 expectations_orpp <- function(agent) {
+
   agent %>%
-    # Are patient IDs unique?
-    rows_distinct(vars(desynpuf_id),
-      label = "Dataset has only One Row Per Patient (OORP)"
-    ) %>%
-    # Are patient IDs unique?
+
+    # Paients' survival time is non-negative
     col_vals_gt(vars(survival_years),
       value = 0,
-      label = "No patient has negative survival time"
+      label = "Patients do not have negative survival time"
+    ) %>%
+
+  # Patients' median inpatient payment is greater than 0
+  col_vals_gte(vars(inpatient_payment_median),
+              value = 0,
+              na_pass = TRUE,
+              label = "Patients have non-negative median inpatient payments"
+  ) %>%
+
+    # Patients' median prescription costs are non negative
+    col_vals_gte(vars(inpatient_payment_median),
+                 value = 0,
+                 na_pass = TRUE,
+                 label = "Patients have non-negative median prescription costs"
     )
+
 }

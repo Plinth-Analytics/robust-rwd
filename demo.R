@@ -50,17 +50,17 @@ tables_01_etl_01 <- tables_01 %>%
 # Let's define some expectations for tha patient table:
 edit(expectations_patients)
 
-# And apply to the data
+# And apply them to the patients data
 patients_interrogation <- create_agent(tables_01_etl_01$patients,
                                        tbl_name = "Patients",
                                        label = "Patient level table") %>%
   expectations_patients() %>%
   interrogate()
 
-# Print result
+# Print  interrogation summary
 patients_interrogation
 
-# See the
+# See the tidy interrogation results
 patients_interrogation %>%
   tidy_interrogation()
 
@@ -68,23 +68,27 @@ patients_interrogation %>%
 
 #### Birth date --------------------------------
 
+##### Patients borth before 1900
 tables_01_etl_01$patients %>%
   filter(birth_dt <= ymd("19000101"))
 
 #### Cancer --------------------------------
 
+##### No patients have cancer
 tables_01_etl_01$patients %>%
   group_by(cncr) %>%
   tally()
 
 #### Death info ------------------------------
 
+##### No patients have recorded deaths
 tables_01_etl_01$patients %>%
   group_by(death_observed) %>%
   tally()
 
 #### Sex info ------------------------------
 
+##### All patients are Male
 tables_01_etl_01$patients %>%
   group_by(sex_ident_cd) %>%
   tally()
@@ -118,10 +122,11 @@ tables_01_etl_01$inpatient %>%
 # inpatient data
 #   Problem 1: 104 records indicate have NEGATIVE claims
 
-# STOP - Get the new delivery from the provider
+# STOP - Get the new delivery from the provider using receive_delivery_02()
 
 tables_02 <- receive_delivery_02()
 
+# Apply our internal etl 01 process
 tables_02_etl_01 <- tables_02 %>%
   etl_01()
 
@@ -141,6 +146,8 @@ patients_interrogation %>%
 ## Something is still wrong! We still  don't have both Males and Females
 # The provider assures us that the data are correct. Values are sent as 1s and 2s
 # and they KNOW both are in our file.
+#
+
 
 # Wait...1s and 2s? What about the "Male" and "Female"
 
@@ -153,7 +160,8 @@ tables_02_etl_01$patients %>%
   select(sex_ident_cd)
 
 # Oh no our ETL is wrong!
-# If you look at the robustrwd/R/etl_01.R script you'll see the offending lines
+# We can see bug in the etl_patients_01() function in the robustrwd/R/etl_01.R script
+edit(etl_patients_01)
 
 # Our eng team has created a new ETL process called etl_02. Let's run it on our data
 
@@ -188,8 +196,9 @@ inpatient_interrogation <- tables_02_etl_02$inpatient %>%
 inpatient_interrogation %>%
   tidy_interrogation()
 
-## Comment: Looks great!
-## While there is much more checking we could implement, let's move on to the next step
+## Ok now we're good!
+## Data Delivery 02 fixed several issues from the data provider
+## ETL 02 fixed a coding issue with Sex from our data engineering team
 
 # 3. ORPP ----------------------------------------------------------------------
 
@@ -222,11 +231,17 @@ orpp_tbl
 
 # 4. QC ORPP -------------------------------------------------------------------
 
+## Now let's QC the orpp table. We'll use the existing set of
+#  expectations expectations_orpp()
+
+edit(expectations_orpp)
+
 orpp_interrogation <- create_agent(orpp_tbl,
   tbl_name = "ORPP cohort",
   label = "Patient level table"
 ) %>%
   expectations_orpp() %>%
+  # expectations_patients() %>%
   interrogate()
 
 # Print result
