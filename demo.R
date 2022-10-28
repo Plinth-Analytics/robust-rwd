@@ -121,9 +121,6 @@ patients_interrogation <- create_agent(tables_02_etl_01$patients,
   expectations_patients() %>%
   interrogate()
 
-# Print result
-patients_interrogation
-
 # See the
 patients_interrogation %>%
   summarise_fail()
@@ -180,7 +177,7 @@ tables_02_etl_02$inpatient %>%
 # Now that'
 # We'll start from patients, a table that is already one-row-per-patient
 
-orpp_tbl <- tables_02_post_etl$patients
+orpp_tbl <- tables_02_etl_02$patients
 
 # Now we'll add some ORPP variables from tables$inpatient and tables$prescription
 # To do this, we need to summarise MRPP (multiple-row-per-patient) tables to be
@@ -214,13 +211,8 @@ orpp_interrogation <- create_agent(orpp_tbl,
   interrogate()
 
 # Print result
-orpp_interrogation
-
-# See the
 orpp_interrogation %>%
   summarise_fail()
-
-# ...
 
 # 5. Cohort definition and Attrition -------------------------------------------
 
@@ -254,13 +246,15 @@ cohort_tbl <- orpp_tbl %>%
 
 ## 6a. Survival analysis--------------------------------------------------------
 
-# Let's see how cancer diagnosis may affect survival after age 65. Note that we assume:
-#  * patients entered the data at and had conditions diagnosed by age 65
-#  * greater inpatient spending suggests more inpatient care was provided
-# scoping out some analyses
+# Are there disparities between Black and White patients in our final cohort?
+# We will answer this with a survival analysis
 
 fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
   data = cohort_tbl
 )
 
-ggsurvplot(fit, conf.int = TRUE, surv.median.line = "hv")
+# Create the final Kaplan-Meier curve
+ggsurvplot(fit,
+           conf.int = TRUE,
+           surv.median.line = "hv")
+
