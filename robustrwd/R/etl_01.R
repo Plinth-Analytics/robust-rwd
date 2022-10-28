@@ -92,7 +92,7 @@ etl_patients_01 <- function(bene_df) {
 
 #' ETL for inpatient tables
 #'
-#' @param An inpatient claims table provided by CMS
+#' @param inpatient_df An inpatient claims table provided by CMS
 #'
 #'
 etl_inpatient_01 <- function(inpatient_df) {
@@ -109,7 +109,7 @@ etl_inpatient_01 <- function(inpatient_df) {
 
 #' ETL for outpatient tables
 #'
-#' @param An inpatient claims table provided by CMS
+#' @param outpatient_df An outpatient claims table provided by CMS
 #'
 #'
 etl_outpatient_01 <- function(outpatient_df) {
@@ -126,7 +126,7 @@ etl_outpatient_01 <- function(outpatient_df) {
 
 #' ETL for inpatient tables
 #'
-#' @param An inpatient claims table provided by CMS
+#' @param prescription_df A prescriptions claims table provided by CMS
 #'
 #'
 etl_prescription_01 <- function(prescription_df) {
