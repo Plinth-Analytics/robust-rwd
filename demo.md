@@ -3,6 +3,9 @@ Using R to derive robust insights from real-world healthcare data
 
 # Load data
 
+-   Delivery = 02
+-   ETL version = 02
+
 ``` r
 tables_02 <- receive_delivery_02()
 
@@ -13,22 +16,6 @@ tables_02_etl_02 <- tables_02 %>%
 # QC
 
 ## Patients
-
-``` r
-# Run on the patients data
-patients_interrogation <- tables_02_etl_02$patients %>%
-  create_agent(
-    tbl_name = "Patients",
-    label = "Patients data (Post ETL 02)"
-  ) %>%
-  expectations_patients() %>%
-  interrogate()
-
-# Look at tidy results
-patients_interrogation %>%
-  tidy_interrogation() %>%
-  knitr::kable()
-```
 
     ## ✔ All Pass No failures across all 13 Tests!
 
@@ -48,22 +35,9 @@ patients_interrogation %>%
 |      0 | Key columns exist                                 | sex_ident_cd   | FALSE    |
 |      0 | Dataset contains both Male and Female patients    | sex_ident_cd   | FALSE    |
 
+    ## ✔ All Pass No failures across all 13 Tests!
+
 ## Inpatient
-
-``` r
-inpatient_interrogation <- tables_02_etl_02$inpatient %>%
-  create_agent(
-    tbl_name = "Inpatient",
-    label = "Inpatient data (Post ETL 02)"
-  ) %>%
-  expectations_inpatient() %>%
-  interrogate()
-
-# Look at tidy results
-inpatient_interrogation %>%
-  tidy_interrogation() %>%
-  knitr::kable()
-```
 
     ## ✔ All Pass No failures across all 4 Tests!
 
@@ -74,13 +48,9 @@ inpatient_interrogation %>%
 |      0 | Claim admin is a date            | clm_thru_dt | FALSE    |
 |      0 | Key columns exist                | desynpuf_id | FALSE    |
 
-## ORPP
+    ## ✔ All Pass No failures across all 4 Tests!
 
-``` r
-orpp_tbl <- tables_02_etl_02$patients %>%
-  add_orpp_inpatient(inpatient_tbl = tables_02_etl_02$inpatient) %>%
-  add_orpp_prescription(prescription_tbl = tables_02_etl_02$prescription)
-```
+## ORPP
 
     ## ℹ ORPP | Added 5 var(s) from inpatient:
 
@@ -108,45 +78,19 @@ orpp_tbl <- tables_02_etl_02$patients %>%
     ## • prescription_patient_payment_percentage_median = Median percentage of total
     ##   prescription cost paid by patient
 
-``` r
-orpp_interrogation <- create_agent(orpp_tbl,
-  tbl_name = "ORPP cohort",
-  label = "Patient level table"
-) %>%
-  expectations_orpp() %>%
-  interrogate()
+    ## ✔ All Pass No failures across all 3 Tests!
 
-# Print result
-orpp_interrogation %>%
-  tidy_interrogation() %>%
-  knitr::kable()
-```
+| fail_n | test                                                 | column                   | any_fail |
+|-------:|:-----------------------------------------------------|:-------------------------|:---------|
+|      0 | Patients have non-negative median inpatient payments | inpatient_payment_median | FALSE    |
+|      0 | Patients have non-negative median prescription costs | inpatient_payment_median | FALSE    |
+|      0 | Patients do not have negative survival time          | survival_years           | FALSE    |
 
-    ## ✔ All Pass No failures across all 2 Tests!
-
-| fail_n | test                                        | column         | any_fail |
-|-------:|:--------------------------------------------|:---------------|:---------|
-|      0 | Dataset has only One Row Per Patient (OORP) | desynpuf_id    | FALSE    |
-|      0 | No patient has negative survival time       | survival_years | FALSE    |
+    ## ✔ All Pass No failures across all 3 Tests!
 
 # Cohort
 
-``` r
-attrition_table <-
-  create_attrition(
-    orpp_tbl,
-    "Race is white or black" = race_cd %in% c("White", "Black"),
-    "Is Male" = sex_ident_cd == 'Male',
-    "Has Diabetes" = diabetes == TRUE,
-    "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
-    "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
-    "18 years of age or older" = survival_years >= 18
-  )
-
-# Show the attrition table
-attrition_table %>%
-  knitr::kable()
-```
+## Attrition Table
 
 | description                       |     n | n_dropped |
 |:----------------------------------|------:|----------:|
@@ -158,29 +102,20 @@ attrition_table %>%
 | Median prescription cost is \> 50 |    83 |      -185 |
 | 18 years of age or older          |    83 |         0 |
 
-``` r
-# Plot an attrition chart
-attrition_table %>%
-  plot_attrition()
-```
+## Attrition Plot
 
-![](demo_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
-
-``` r
-cohort_tbl <- orpp_tbl %>%
-  filter(
-    race_cd %in% c("White", "Black"),
-    sex_ident_cd == 'Male',
-    diabetes == TRUE,
-    inpatient_payment_median >= 10000,
-    prescription_rx_cost_median > 20,
-    survival_years >= 18
-  )
-```
+![](demo_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 # Analyses
 
+## Survival
+
 ``` r
+# Fit the survival model
+#  Follow-up time is survival_years
+#  Status indicator is death_observed
+#  Stratify results by sex_cd
+
 fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
   data = cohort_tbl
 )
@@ -190,8 +125,8 @@ ggsurvplot(fit,
            conf.int = TRUE,
            surv.median.line = "hv") +
   labs(title = "Survival of patients from birth to death",
-       subtitle = "Simulated Medicare data",
-       caption = glue::glue("Patients = {nrow(cohort_tbl)}"))
+       subtitle = "Using CMS Medicare claims synthetic public use files",
+       caption = glue::glue("Patients = {nrow(cohort_tbl)}\nPatients checks pass = {patients_checks_pass}\nInpatient checks pass = {inpatient_checks_pass}\nORPP checks pass = {orpp_checks_pass}"))
 ```
 
-![](demo_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](demo_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->

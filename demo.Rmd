@@ -5,7 +5,6 @@ output: github_document
 ---
 
 ```{r, include = FALSE}
-
 # Install packages (utilizing renv)
 source(here::here("setup/packages.R"))
 
@@ -21,10 +20,12 @@ devtools::load_all(here::here("robustrwd"))
 
 # Turn on messaging
 be_noisy()
-
 ```
 
 # Load data
+
+* Delivery = 02
+* ETL version = 02
 
 ```{r, results = "hide", message=FALSE}
 tables_02 <- receive_delivery_02()
@@ -37,7 +38,7 @@ tables_02_etl_02 <- tables_02 %>%
 
 ## Patients
 
-```{r}
+```{r, echo = FALSE}
 # Run on the patients data
 patients_interrogation <- tables_02_etl_02$patients %>%
   create_agent(
@@ -51,11 +52,19 @@ patients_interrogation <- tables_02_etl_02$patients %>%
 patients_interrogation %>%
   tidy_interrogation() %>%
   knitr::kable()
+
+# Summarise into single pass / fail
+
+patients_checks_pass <- patients_interrogation %>%
+  tidy_interrogation() %>%
+  pull(any_fail) %>%
+  any() %>%
+  `==`(FALSE)
 ```
 
 ## Inpatient
 
-```{r}
+```{r, echo = FALSE}
 inpatient_interrogation <- tables_02_etl_02$inpatient %>%
   create_agent(
     tbl_name = "Inpatient",
@@ -68,11 +77,19 @@ inpatient_interrogation <- tables_02_etl_02$inpatient %>%
 inpatient_interrogation %>%
   tidy_interrogation() %>%
   knitr::kable()
+
+# Summarise into single pass / fail
+
+inpatient_checks_pass <- inpatient_interrogation %>%
+  tidy_interrogation() %>%
+  pull(any_fail) %>%
+  any() %>%
+  `==`(FALSE)
 ```
 
 ## ORPP
 
-```{r}
+```{r, echo = FALSE}
 orpp_tbl <- tables_02_etl_02$patients %>%
   add_orpp_inpatient(inpatient_tbl = tables_02_etl_02$inpatient) %>%
   add_orpp_prescription(prescription_tbl = tables_02_etl_02$prescription)
@@ -88,12 +105,33 @@ orpp_interrogation <- create_agent(orpp_tbl,
 orpp_interrogation %>%
   tidy_interrogation() %>%
   knitr::kable()
+
+# Summarise into single pass / fail
+
+orpp_checks_pass <- orpp_interrogation %>%
+  tidy_interrogation() %>%
+  pull(any_fail) %>%
+  any() %>%
+  `==`(FALSE)
 ```
 
 
 # Cohort
 
-```{r}
+
+## Attrition Table
+
+```{r, echo = FALSE}
+cohort_tbl <- orpp_tbl %>%
+  filter(
+    race_cd %in% c("White", "Black"),
+    sex_ident_cd == 'Male',
+    diabetes == TRUE,
+    inpatient_payment_median >= 10000,
+    prescription_rx_cost_median > 20,
+    survival_years >= 18
+  )
+
 attrition_table <-
   create_attrition(
     orpp_tbl,
@@ -103,11 +141,17 @@ attrition_table <-
     "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
     "18 years of age or older" = survival_years >= 18
   )
+```
 
+```{r, echo = FALSE}
 # Show the attrition table
 attrition_table %>%
   knitr::kable()
+```
 
+## Attrition Plot
+
+```{r, echo = FALSE}
 # Plot an attrition chart
 attrition_table %>%
   plot_attrition()
@@ -124,7 +168,14 @@ cohort_tbl <- orpp_tbl %>%
 
 # Analyses
 
-```{r}
+## Survival
+
+```{r, fig.width = 8, fig.height = 7}
+# Fit the survival model
+#  Follow-up time is survival_years
+#  Status indicator is death_observed
+#  Stratify results by sex_cd
+
 fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
   data = cohort_tbl
 )
@@ -134,7 +185,6 @@ ggsurvplot(fit,
            conf.int = TRUE,
            surv.median.line = "hv") +
   labs(title = "Survival of patients from birth to death",
-       subtitle = "Simulated Medicare data",
-       caption = glue::glue("Patients = {nrow(cohort_tbl)}"))
+       subtitle = "Using CMS Medicare claims synthetic public use files",
+       caption = glue::glue("Patients = {nrow(cohort_tbl)}\nPatients checks pass = {patients_checks_pass}\nInpatient checks pass = {inpatient_checks_pass}\nORPP checks pass = {orpp_checks_pass}"))
 ```
-
