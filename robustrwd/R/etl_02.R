@@ -1,4 +1,3 @@
-
 #' @importFrom purrr compose
 factor_as_string <- compose(as.character, factor)
 
@@ -19,9 +18,7 @@ factor_as_string <- compose(as.character, factor)
 #'
 #'
 etl_patients_02 <- function(bene_df) {
-
   if (is_noisy()) {
-
     cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('patients'))} table")
   }
 
@@ -84,10 +81,12 @@ etl_patients_02 <- function(bene_df) {
         TRUE ~ pppymt_ip
       )
     ) %>%
-    select(desynpuf_id, birth_dt, death_dt, sex_ident_cd, race_cd,
-           esrd_ind, hi_cvrage_tot_mons, pppymt_ip, diabetes, cncr,
-           years_until_death, coverage_end_month, years_alive_so_far, survival_years,
-           death_observed)
+    select(
+      desynpuf_id, birth_dt, death_dt, sex_ident_cd, race_cd,
+      esrd_ind, hi_cvrage_tot_mons, pppymt_ip, diabetes, cncr,
+      years_until_death, coverage_end_month, years_alive_so_far, survival_years,
+      death_observed
+    )
 }
 
 #' ETL for inpatient tables
@@ -96,9 +95,7 @@ etl_patients_02 <- function(bene_df) {
 #'
 #'
 etl_inpatient_02 <- function(inpatient_df) {
-
   if (is_noisy()) {
-
     cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('inpatient'))} table")
   }
 
@@ -115,9 +112,7 @@ etl_inpatient_02 <- function(inpatient_df) {
 #'
 #'
 etl_outpatient_02 <- function(outpatient_df) {
-
   if (is_noisy()) {
-
     cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('outpatient'))} table")
   }
 
@@ -134,16 +129,14 @@ etl_outpatient_02 <- function(outpatient_df) {
 #'
 #'
 etl_prescription_02 <- function(prescription_df) {
-
   if (is_noisy()) {
-
     cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('prescription'))} table")
   }
 
 
   # maybe do some ETL on the inpatient data.frame
   prescription_df %>%
-    rename_all(tolower)%>%
+    rename_all(tolower) %>%
     mutate(across(ends_with("dt"), ~ lubridate::ymd(.x))) %>%
     select(desynpuf_id, pde_id, srvc_dt, days_suply_num, ptnt_pay_amt, tot_rx_cst_amt)
 }
@@ -156,13 +149,9 @@ etl_prescription_02 <- function(prescription_df) {
 #'
 # could make a function factory out of this if needed
 etl_02 <- function(tables) {
-
   if (is_noisy()) {
-
     cli::cli_h1("Applying ETL v01 to data")
-
   }
-
 
   which_tables <-
     map(set_names(c("patients", "inpatient", "prescription", "outpatient")), ~ grep(.x, names(tables), value = TRUE))

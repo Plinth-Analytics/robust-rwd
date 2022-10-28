@@ -60,7 +60,6 @@ add_orpp_inpatient <- function(data,
 add_orpp_prescription <- function(data,
                                   prescription_tbl,
                                   pid = "desynpuf_id") {
-
   assert_is_prescription(prescription_tbl)
   assert_is_orpp(data)
 

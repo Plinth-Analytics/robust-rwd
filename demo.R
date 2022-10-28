@@ -8,6 +8,7 @@ library(tidyverse)
 library(pointblank)
 library(survival)
 library(gtsummary)
+library(survminer)
 
 # Load the robustrwd package
 devtools::load_all("robustrwd")
@@ -29,46 +30,17 @@ tables_01 <-
 
 # Now we'll use etl() to simulate an internal ETL process
 
-tables_01_etl <- tables_01 %>%
+tables_01_etl_01 <- tables_01 %>%
   etl_01()
 
 # 2. QC raw data ---------------------------------------------------------------
 
 ## 2b patients ===================================================================
 
-expectations_patients <- function(obj) {
-
-  obj %>%
-
-    # do the columns desynpuf_id and clm_admsn_dt exist?
-    col_exists(vars(desynpuf_id, birth_dt,
-                    death_dt, sex_ident_cd,
-                    race_cd, cncr, diabetes),
-               label = "Key columns exist") %>%
-
-    # Are patient IDs unique?
-    rows_distinct(vars(desynpuf_id),
-                  label = "Table is ORPP") %>%
-
-    # All dates after 1900
-    col_vals_gt(vars(birth_dt, death_dt),
-                 value = ymd("19000101"),
-                 label = "No one born before 01-01-1900",
-                 na_pass = TRUE) %>%
-
-    col_vals_make_set(vars(death_observed),
-                      set = c(TRUE, FALSE),
-                      label = "Expect both patients with and without death info") %>%
-
-    col_vals_make_set(vars(cncr),
-                      set = c(TRUE, FALSE),
-                      label = "Expect both patients with and without cancer")
-
-}
-
-patients_interrogation <- create_agent(tables_01_etl$patients,
-                                       tbl_name = "Patients",
-                                       label = "Patient level table") %>%
+patients_interrogation <- create_agent(tables_01_etl_01$patients,
+  tbl_name = "Patients",
+  label = "Patient level table"
+) %>%
   expectations_patients() %>%
   interrogate()
 
@@ -83,51 +55,40 @@ patients_interrogation %>%
 
 #### Birth date --------------------------------
 
-tables_01_etl$patients %>%
+tables_01_etl_01$patients %>%
   filter(birth_dt <= ymd("19000101"))
 
 #### Cancer --------------------------------
 
-tables_01_etl$patients %>%
+tables_01_etl_01$patients %>%
   group_by(cncr) %>%
   tally()
 
 #### Death info ------------------------------
 
-tables_01_etl$patients %>%
+tables_01_etl_01$patients %>%
   group_by(death_observed) %>%
+  tally()
+
+#### Sex info ------------------------------
+
+tables_01_etl_01$patients %>%
+  group_by(sex_ident_cd) %>%
   tally()
 
 # patients data
 #   Problem 1: Some patients have birth dates before 1900
 #   Problem 2: There are no patients with cancer
 #   Problem 3: There are no patients with death data
-
+#   Problem 4: All patients are Male
 
 ## 2c Inpatient ================================================================
 
-expectations_inpatient <- function(obj) {
-
-  obj %>%
-
-    # do the columns desynpuf_id and clm_admsn_dt exist?
-    col_exists(vars(desynpuf_id),
-               label = "Key columns exist") %>%
-
-    # Is the claim from date and claim through date column(s) both dates?
-    col_is_date(vars(clm_from_dt, clm_thru_dt),
-                label = "Claim admin is a date") %>%
-
-    # Is the claim payment amount greater than 0?
-    col_vals_gte(vars(clm_pmt_amt),
-                 value = 0,
-                 label = "Claim payment amount is positive")
-
-}
-
-inpatient_interroggation <- create_agent(tables_01_etl$inpatient,
-                                         tbl_name = "Inpatient",
-                                         label = "Inpatient data (Post ETL)") %>%
+inpatient_interroggation <- tables_01_etl_01$inpatient %>%
+  create_agent(
+    tbl_name = "Inpatient",
+    label = "Inpatient data (Post ETL)"
+  ) %>%
   expectations_inpatient() %>%
   interrogate()
 
@@ -138,24 +99,25 @@ inpatient_interroggation %>%
 
 # Claim Payment Amount --------------------------------
 
-tables_01_etl$inpatient %>%
+tables_01_etl_01$inpatient %>%
   filter(clm_pmt_amt < 0)
 
 # inpatient data
 #   Problem 1: 204 records indicate have NEGATIVE claims over 10,000
 
-
 # STOP - Get the new delivery
 
-tables_02_post_etl <-
-  receive_delivery_02() %>%
+tables_02 <- receive_delivery_02()
+
+tables_02_etl_01 <- tables_02 %>%
   etl_01()
 
 # Test patients ---------------------------------------------------------------
 
 patients_interrogation <- create_agent(tables_02_post_etl$patients,
-                                       tbl_name = "Patients",
-                                       label = "Patient level table") %>%
+  tbl_name = "Patients",
+  label = "Patient level table"
+) %>%
   expectations_patients() %>%
   interrogate()
 
@@ -164,6 +126,51 @@ patients_interrogation
 
 # See the
 patients_interrogation %>%
+  summarise_fail()
+
+## Something is still wrong! We still  don't have both Males and Females
+# The provider assures us that the data are correct. Values are sent as 1s and 2s
+# and they KNOW both are in our file.
+
+# Wait...1s and 2s? What about the "Male" and "Female"
+
+# Look at 'raw' patients data before ETL. I see both 1s and 2s!
+tables_02$patients %>%
+  select(BENE_SEX_IDENT_CD)
+
+# Now look after ETL. I only see "Male"!
+tables_02_etl_01$patients %>%
+  select(sex_ident_cd)
+
+# Oh no our ETL is wrong!
+# If you look at the robustrwd/R/etl_01.R script you'll see the offending lines
+
+# Our eng team has created a new ETL process called etl_02. Let's run it on our data
+
+tables_02_etl_02 <- tables_02 %>%
+  etl_02()
+
+
+# Run on the patients data
+tables_02_etl_02$patients %>%
+  create_agent(
+    tbl_name = "Patients",
+    label = "Patients data (Post ETL 02)"
+  ) %>%
+  expectations_patients() %>%
+  interrogate() %>%
+  summarise_fail()
+
+# Results look good!
+# Now let's try on the inpatient data
+
+tables_02_etl_02$inpatient %>%
+  create_agent(
+    tbl_name = "Inpatient",
+    label = "Inpatient data (Post ETL 02)"
+  ) %>%
+  expectations_inpatient() %>%
+  interrogate() %>%
   summarise_fail()
 
 ## Comment: Looks great!
@@ -197,30 +204,10 @@ orpp_tbl <- tables_02_post_etl$patients %>%
 
 # 4. QC ORPP -------------------------------------------------------------------
 
-expectations_orpp <- function(obj) {
-
-  obj %>%
-
-    # Is the claim payment amount greater than 0?
-    col_vals_lte(vars(prescription_n),
-                 value = 1000,
-                 label = "No patient should have more than 1000 prescriptions") %>%
-
-    # Are patient IDs unique?
-    rows_distinct(vars(desynpuf_id),
-                  label = "Table is ORPP") %>%
-
-    # Are patient IDs unique?
-    col_vals_gt(vars(survival_years), value = 0,
-                  label = "No patient has negative survival time")
-
-
-}
-
-
 orpp_interrogation <- create_agent(orpp_tbl,
-                                   tbl_name = "ORPP cohort",
-                                   label = "Patient level table") %>%
+  tbl_name = "ORPP cohort",
+  label = "Patient level table"
+) %>%
   expectations_orpp() %>%
   interrogate()
 
@@ -230,8 +217,6 @@ orpp_interrogation
 # See the
 orpp_interrogation %>%
   summarise_fail()
-
-
 
 # ...
 
@@ -279,7 +264,7 @@ table_one(cohort_tbl)
 # scoping out some analyses
 
 fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
-               data = cohort_tbl)
+  data = cohort_tbl
+)
 
 ggsurvplot(fit, conf.int = TRUE, surv.median.line = "hv")
-

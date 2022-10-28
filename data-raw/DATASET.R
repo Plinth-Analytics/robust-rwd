@@ -122,16 +122,14 @@ patients_02 <- patients_02 %>%
   )) %>%
   mutate(BENE_DEATH_DT = as.numeric(stringr::str_remove_all(as.character(BENE_DEATH_DT), "-"))) %>%
   mutate(BENE_DEATH_DT = case_when(
-    BENE_BIRTH_DT > BENE_DEATH_DT ~ BENE_DEATH_DT,
+    BENE_BIRTH_DT >= BENE_DEATH_DT ~ BENE_DEATH_DT + 100,
     TRUE ~ BENE_DEATH_DT
   ))
 
 patients_02$BENE_DEATH_DT[sample(10000, size = 2000)] <- NA
 
-patients_02 %>%
-  mutate(survival = as.numeric(lubridate::ymd(BENE_DEATH_DT) - lubridate::ymd(BENE_BIRTH_DT))) %>%
-  group_by(BENE_RACE_CD) %>%
-  summarise(surv_mean = mean(survival / 365, na.rm = TRUE), N = n())
+inpatient_02 <- inpatient_02 %>%
+  filter(CLM_PMT_AMT > 0)
 
 readr::write_csv(patients_02, file = "data/patients02.csv")
 readr::write_csv(inpatient_02, file = "data/inpatient02.csv")

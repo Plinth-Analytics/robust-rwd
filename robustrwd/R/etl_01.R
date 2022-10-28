@@ -19,10 +19,8 @@ factor_as_string <- compose(as.character, factor)
 #'
 #'
 etl_patients_01 <- function(bene_df) {
-
   if (is_noisy()) {
-
-    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('patients'))} table")
+    cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('patients'))} table")
   }
 
   bene_df %>%
@@ -38,7 +36,7 @@ etl_patients_01 <- function(bene_df) {
     ) %>%
     mutate_at(
       "sex_ident_cd",
-      ~ factor_as_string(.x, levels = 1:2, labels = c("Male", "Female"))
+      ~ factor_as_string(.x, levels = 1:2, labels = c("Male", "Male"))
     ) %>%
     mutate_at(
       "race_cd",
@@ -54,7 +52,7 @@ etl_patients_01 <- function(bene_df) {
         .x,
         levels =
           c(
-            "01", "02", "03", "04", "05", "06", "07", "08", "09", "10",
+            "02", "02", "03", "04", "05", "06", "07", "08", "09", "10",
             "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21",
             "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32",
             "33", "34", "35", "36", "37", "38", "39", "41", "42", "43", "44",
@@ -74,20 +72,22 @@ etl_patients_01 <- function(bene_df) {
     mutate_at(c("birth_dt", "death_dt"), ymd) %>%
     mutate(
       years_until_death = as.numeric(difftime(death_dt, birth_dt, units = "days")) / 365.25,
-      coverage_end_month = ymd("2008-01-01") + months(hi_cvrage_tot_mons),
+      coverage_end_month = ymd("2008-02-02") + months(hi_cvrage_tot_mons),
       years_alive_so_far = as.numeric(difftime(coverage_end_month, birth_dt, units = "days")) / 365.25,
       survival_years = coalesce(years_until_death, years_alive_so_far),
       death_observed = !is.na(death_dt),
       pppymt_ip = case_when(
-        rbinom(length(pppymt_ip), 1, 0.01) == 1 &
+        rbinom(length(pppymt_ip), 1, 0.02) == 1 &
           esrd_ind == "Y" ~ round(rnorm(length(pppymt_ip), -100000, sd = 100)),
         TRUE ~ pppymt_ip
       )
     ) %>%
-    select(desynpuf_id, birth_dt, death_dt, sex_ident_cd, race_cd,
-           esrd_ind, hi_cvrage_tot_mons, pppymt_ip, diabetes, cncr,
-           years_until_death, coverage_end_month, years_alive_so_far, survival_years,
-           death_observed)
+    select(
+      desynpuf_id, birth_dt, death_dt, sex_ident_cd, race_cd,
+      esrd_ind, hi_cvrage_tot_mons, pppymt_ip, diabetes, cncr,
+      years_until_death, coverage_end_month, years_alive_so_far, survival_years,
+      death_observed
+    )
 }
 
 #' ETL for inpatient tables
@@ -96,10 +96,8 @@ etl_patients_01 <- function(bene_df) {
 #'
 #'
 etl_inpatient_01 <- function(inpatient_df) {
-
   if (is_noisy()) {
-
-    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('inpatient'))} table")
+    cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('inpatient'))} table")
   }
 
   # maybe do some ETL on the inpatient data.frame
@@ -115,10 +113,8 @@ etl_inpatient_01 <- function(inpatient_df) {
 #'
 #'
 etl_outpatient_01 <- function(outpatient_df) {
-
   if (is_noisy()) {
-
-    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('outpatient'))} table")
+    cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('outpatient'))} table")
   }
 
   # maybe do some ETL on the inpatient data.frame
@@ -134,16 +130,14 @@ etl_outpatient_01 <- function(outpatient_df) {
 #'
 #'
 etl_prescription_01 <- function(prescription_df) {
-
   if (is_noisy()) {
-
-    cli::cli_alert_info("Applying ETL (v01) to {crayon::bold(crayon::magenta('prescription'))} table")
+    cli::cli_alert_info("Applying ETL (v02) to {crayon::bold(crayon::magenta('prescription'))} table")
   }
 
 
   # maybe do some ETL on the inpatient data.frame
   prescription_df %>%
-    rename_all(tolower)%>%
+    rename_all(tolower) %>%
     mutate(across(ends_with("dt"), ~ lubridate::ymd(.x))) %>%
     select(desynpuf_id, pde_id, srvc_dt, days_suply_num, ptnt_pay_amt, tot_rx_cst_amt)
 }
@@ -156,12 +150,10 @@ etl_prescription_01 <- function(prescription_df) {
 #'
 # could make a function factory out of this if needed
 etl_01 <- function(tables) {
-
   if (is_noisy()) {
-
     cli::cli_h1("Applying ETL v01 to data")
-
   }
+
 
   which_tables <-
     map(set_names(c("patients", "inpatient", "prescription", "outpatient")), ~ grep(.x, names(tables), value = TRUE))
