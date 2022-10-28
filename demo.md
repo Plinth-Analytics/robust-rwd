@@ -97,9 +97,10 @@ tables_02_etl_02 <- tables_02 %>%
 | Everyone                          | 10000 |        NA |
 | Race is white or black            |  9323 |      -677 |
 | Has Diabetes                      |  3605 |     -5718 |
-| Has at least 1000 inpatient costs |   610 |     -2995 |
-| Median prescription cost is \> 50 |   199 |      -411 |
-| 18 years of age or older          |   198 |        -1 |
+| Is Male                           |  1526 |     -2079 |
+| Has at least 1000 inpatient costs |   268 |     -1258 |
+| Median prescription cost is \> 50 |    83 |      -185 |
+| 18 years of age or older          |    83 |         0 |
 
 ## Attrition Plot
 

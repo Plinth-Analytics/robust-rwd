@@ -1,3 +1,5 @@
+# https://github.com/Plinth-Analytics/robust-rwd
+
 # Goal -------------------------------------------------------------------------
 
 # 1. Read in raw data
@@ -289,6 +291,7 @@ cohort_tbl <- orpp_tbl %>%
   filter(
     race_cd %in% c("White", "Black"),
     diabetes == TRUE,
+    sex_ident_cd == "Male",
     inpatient_payment_median >= 10000,
     prescription_rx_cost_median > 20,
     survival_years >= 18
@@ -309,7 +312,7 @@ fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
 ggsurvplot(fit,
            conf.int = TRUE,
            surv.median.line = "hv") +
-  labs(title = "Survival of adult male patients from birth to death",
+  labs(title = "Survival of adult patients from birth to death",
        subtitle = "Simulated Medicare data")
 
 # Finished! -------------------------------------------------------------------
@@ -325,41 +328,3 @@ ggsurvplot(fit,
 # Created an attrition table
 # Conducted a survival analysis
 # Created a survival plot
-
-
-
-
-
-# Final thoughts --------------------------------------------------------------
-
-# What could have gone wrong:
-
-bad_orpp_tbl <- tables_02_etl_01$patients %>%
-  add_orpp_inpatient(inpatient_tbl = tables_02_etl_01$inpatient) %>%
-  add_orpp_prescription(prescription_tbl = tables_02_etl_01$prescription)
-
-bad_cohort_tbl <- bad_orpp_tbl %>%
-  filter(
-    race_cd %in% c("White", "Black"),
-    diabetes == TRUE,
-    inpatient_payment_median >= 10000,
-    prescription_rx_cost_median > 20,
-    survival_years >= 18
-  )
-
-bad_fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
-               data = bad_cohort_tbl
-)
-
-# Create the final Kaplan-Meier curve
-ggsurvplot(bad_fit,
-           conf.int = TRUE,
-           surv.median.line = "hv", risk.table = TRUE) +
-  labs(title = "Survival of adult male patients from birth to death using bad data",
-       subtitle = "Simulated Medicare data")
-
-
-# Cox Model
-bad_model <- coxph( Surv(survival_years, death_observed) ~ race_cd,
-                data = bad_cohort_tbl)
-ggforest(bad_model)
