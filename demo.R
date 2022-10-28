@@ -1,15 +1,14 @@
 # Goal -------------------------------------------------------------------------
 
-# Here's what we did
-# Read in raw data
-# Applied QC checks on the raw data
-#   Discovered issues with delivered data and an internal ETL pipeline
-# Generated a one-row-per-patient (ORPP) table from multiple tables
-# Conducted QC checks on the ORPP table
-# Defined a cohort based on multi-dimensional criteria
-# Created an attrition table
-# Conducted a survival analysis
-# Created a survival plot
+# 1. Read in raw data
+# 2. Apply QC checks on the raw data
+#      Discover issues with delivered data and an internal ETL pipeline
+# 3. Generate a one-row-per-patient (ORPP) table from multiple tables
+# 4. Conduct QC checks on the ORPP table
+# 5. Define a cohort based on multi-dimensional criteria
+# 6. Create an attrition table
+# 7. Conducted a survival analysis
+# 8. Created a survival plot
 
 # 0. Setup ---------------------------------------------------------------------
 
@@ -252,8 +251,12 @@ attrition_table <-
     "18 years of age or older" = survival_years >= 18
   )
 
-# look at the attrition table to see how many patients were removed:
+# Show the attrition table
 attrition_table
+
+# Plot an attrition chart
+attrition_table %>%
+  plot_attrition()
 
 # 5c. Apply attrition criteria to orpp tble ====================================
 
@@ -280,11 +283,14 @@ fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
 # Create the final Kaplan-Meier curve
 ggsurvplot(fit,
            conf.int = TRUE,
-           surv.median.line = "hv")
+           surv.median.line = "hv") +
+  labs(title = "Survival of patients from birth to death",
+       subtitle = "Simulated Medicare data")
 
 # Finished! -------------------------------------------------------------------
 
 # Here's what we did
+
 # Read in raw data
 # Applied QC checks on the raw data
 #   Discovered issues with delivered data and an internal ETL pipeline

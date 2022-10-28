@@ -1,0 +1,140 @@
+---
+title: "Using R to derive robust insights from real-world healthcare data"
+subtitle: "Workshop given at R/Pharma 2022"
+output: github_document
+---
+
+```{r, include = FALSE}
+
+# Install packages (utilizing renv)
+source(here::here("setup/packages.R"))
+
+# Load libraries
+library(tidyverse)
+library(pointblank)
+library(survival)
+library(gtsummary)
+library(survminer)
+
+# Load the robustrwd package
+devtools::load_all(here::here("robustrwd"))
+
+# Turn on messaging
+be_noisy()
+
+```
+
+# Load data
+
+```{r, results = "hide", message=FALSE}
+tables_02 <- receive_delivery_02()
+
+tables_02_etl_02 <- tables_02 %>%
+  etl_02()
+```
+
+# QC
+
+## Patients
+
+```{r}
+# Run on the patients data
+patients_interrogation <- tables_02_etl_02$patients %>%
+  create_agent(
+    tbl_name = "Patients",
+    label = "Patients data (Post ETL 02)"
+  ) %>%
+  expectations_patients() %>%
+  interrogate()
+
+# Look at tidy results
+patients_interrogation %>%
+  tidy_interrogation() %>%
+  knitr::kable()
+```
+
+## Inpatient
+
+```{r}
+inpatient_interrogation <- tables_02_etl_02$inpatient %>%
+  create_agent(
+    tbl_name = "Inpatient",
+    label = "Inpatient data (Post ETL 02)"
+  ) %>%
+  expectations_inpatient() %>%
+  interrogate()
+
+# Look at tidy results
+inpatient_interrogation %>%
+  tidy_interrogation() %>%
+  knitr::kable()
+```
+
+## ORPP
+
+```{r}
+orpp_tbl <- tables_02_etl_02$patients %>%
+  add_orpp_inpatient(inpatient_tbl = tables_02_etl_02$inpatient) %>%
+  add_orpp_prescription(prescription_tbl = tables_02_etl_02$prescription)
+
+orpp_interrogation <- create_agent(orpp_tbl,
+  tbl_name = "ORPP cohort",
+  label = "Patient level table"
+) %>%
+  expectations_orpp() %>%
+  interrogate()
+
+# Print result
+orpp_interrogation %>%
+  tidy_interrogation() %>%
+  knitr::kable()
+```
+
+
+# Cohort
+
+```{r}
+attrition_table <-
+  create_attrition(
+    orpp_tbl,
+    "Race is white or black" = race_cd %in% c("White", "Black"),
+    "Has Diabetes" = diabetes == TRUE,
+    "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
+    "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
+    "18 years of age or older" = survival_years >= 18
+  )
+
+# Show the attrition table
+attrition_table %>%
+  knitr::kable()
+
+# Plot an attrition chart
+attrition_table %>%
+  plot_attrition()
+
+cohort_tbl <- orpp_tbl %>%
+  filter(
+    race_cd %in% c("White", "Black"),
+    diabetes == TRUE,
+    inpatient_payment_median >= 10000,
+    prescription_rx_cost_median > 20,
+    survival_years >= 18
+  )
+```
+
+# Analyses
+
+```{r}
+fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
+  data = cohort_tbl
+)
+
+# Create the final Kaplan-Meier curve
+ggsurvplot(fit,
+           conf.int = TRUE,
+           surv.median.line = "hv") +
+  labs(title = "Survival of patients from birth to death",
+       subtitle = "Simulated Medicare data",
+       caption = glue::glue("Patients = {nrow(cohort_tbl)}"))
+```
+

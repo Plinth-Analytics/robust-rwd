@@ -42,3 +42,39 @@ apply_inclusion <- function(.df, ...) {
     df = filter(.df, !!!unname(enquos(...)))
   )
 }
+
+#' Plot an attrition diagram from an attrition table object
+#'
+#' @param attrition_tbl tbl.
+#' @param nudge_label_x numeric. How much to nudge labels
+#'
+#' @return ggplot2
+
+plot_attrition <- function(attrition_tbl,
+                           title = "Cohort Attrition",
+                           nudge_label_x = .01) {
+  attrition_tbl <- attrition_tbl %>%
+    mutate(
+      step = 1:nrow(attrition_tbl),
+      criteria = factor(description, levels = rev(description)),
+      type = "inclusion"
+    )
+
+  attrition_gg <- ggplot2::ggplot(
+    attrition_tbl,
+    ggplot2::aes(
+      x = n,
+      y = criteria,
+      label = scales::comma(n),
+      fill = type
+    )
+  ) +
+    ggplot2::geom_bar(stat = "identity", col = "black", fill = rgb(71, 131, 241, maxColorValue = 255)) +
+    ggplot2::geom_label(fill = "white", nudge_x = nudge_label_x * max(attrition_tbl$n), hjust = "inward") +
+    ggplot2::labs(title = title, y = "") +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(legend.position = "bottom") +
+    ggplot2::scale_x_continuous(labels = scales::comma)
+
+  return(attrition_gg)
+}
