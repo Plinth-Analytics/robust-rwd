@@ -166,9 +166,10 @@ tables_02_etl_01$patients %>%
 # We can see bug in the etl_patients_01() function in the robustrwd/R/etl_01.R script
 edit(etl_patients_01)
 
-edit(etl_patients_01)
+# Our eng team has created a new ETL process called etl_02.
+edit(etl_patients_02)
 
-# Our eng team has created a new ETL process called etl_02. Let's run it on our data
+#Let's run it on our data
 
 tables_02_etl_02 <- tables_02 %>%
   etl_02()
@@ -246,7 +247,7 @@ orpp_interrogation <- create_agent(orpp_tbl,
   label = "Patient level table"
 ) %>%
   expectations_orpp() %>%
-  # expectations_patients() %>%
+  # expectations_patients() %>%   # Can also add our existing patients expectations!
   interrogate()
 
 # Print result
@@ -329,8 +330,12 @@ ggforest(model)
 # Conducted a survival analysis
 # Created a survival plot
 
-# Final thoughts --------------------------------------------------------------
 
+
+
+
+
+# Final thoughts --------------------------------------------------------------
 
 # What could have gone wrong:
 
