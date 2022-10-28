@@ -101,6 +101,8 @@ tables_01_etl_01$patients %>%
 
 ## 2c Inpatient ================================================================
 
+edit(expectations_inpatient)
+
 inpatient_interroggation <- tables_01_etl_01$inpatient %>%
   create_agent(
     tbl_name = "Inpatient",
@@ -143,7 +145,8 @@ patients_interrogation <- create_agent(tables_02_etl_01$patients,
 patients_interrogation %>%
   tidy_interrogation()
 
-## Something is still wrong! We still  don't have both Males and Females
+## The new data seems to have been a big improvement, but there is still something
+# wrong! We still seem to only have male patients!
 # The provider assures us that the data are correct. Values are sent as 1s and 2s
 # and they KNOW both are in our file.
 #
@@ -161,6 +164,8 @@ tables_02_etl_01$patients %>%
 
 # Oh no our ETL is wrong!
 # We can see bug in the etl_patients_01() function in the robustrwd/R/etl_01.R script
+edit(etl_patients_01)
+
 edit(etl_patients_01)
 
 # Our eng team has created a new ETL process called etl_02. Let's run it on our data
