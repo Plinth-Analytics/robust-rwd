@@ -1,3 +1,5 @@
+# expectations.R
+# Define and control expectations for pointblank
 
 #' Define expectations for patients data from medicare
 #'
@@ -62,7 +64,6 @@ expectations_inpatient <- function(agent) {
       label = "Claim payment amount is positive"
     )
 }
-
 
 #' Define expectations for a ORPP object derived from medicare tables
 #'

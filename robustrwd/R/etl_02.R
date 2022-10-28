@@ -1,7 +1,31 @@
 #' @importFrom purrr compose
-factor_as_string <- compose(as.character, factor)
+factor_as_string <- compose(as.character, factor) #' Initial ETL over available tables
+#'
+#' Given a set of tables (with the strings "bene" and "inpatient" in their names)
+#'
+#' @param tables A named list of tables
+#'
+# could make a function factory out of this if needed
+etl_02 <- function(tables) {
+  if (is_noisy()) {
+    cli::cli_h1("Applying ETL v01 to data")
+  }
 
-#' Do initial ETL on the beneficiaries table
+  which_tables <-
+    map(set_names(c("patients", "inpatient", "prescription", "outpatient")), ~ grep(.x, names(tables), value = TRUE))
+
+  tables[which_tables$patients] <- map(tables[which_tables$patients], etl_patients_02)
+
+  tables[which_tables$inpatient] <- map(tables[which_tables$inpatient], etl_inpatient_02)
+
+  tables[which_tables$prescription] <- map(tables[which_tables$prescription], etl_prescription_02)
+
+  tables[which_tables$outpatient] <- map(tables[which_tables$outpatient], etl_outpatient_02)
+
+  tables
+}
+
+#' ETL for a patients table tables
 #'
 #' This function will:
 #'   * transform conditions to TRUE/FALSE instead of 1/2
@@ -139,30 +163,4 @@ etl_prescription_02 <- function(prescription_df) {
     rename_all(tolower) %>%
     mutate(across(ends_with("dt"), ~ lubridate::ymd(.x))) %>%
     select(desynpuf_id, pde_id, srvc_dt, days_suply_num, ptnt_pay_amt, tot_rx_cst_amt)
-}
-
-#' Initial ETL over available tables
-#'
-#' Given a set of tables (with the strings "bene" and "inpatient" in their names)
-#'
-#' @param tables A named list of tables
-#'
-# could make a function factory out of this if needed
-etl_02 <- function(tables) {
-  if (is_noisy()) {
-    cli::cli_h1("Applying ETL v01 to data")
-  }
-
-  which_tables <-
-    map(set_names(c("patients", "inpatient", "prescription", "outpatient")), ~ grep(.x, names(tables), value = TRUE))
-
-  tables[which_tables$patients] <- map(tables[which_tables$patients], etl_patients_02)
-
-  tables[which_tables$inpatient] <- map(tables[which_tables$inpatient], etl_inpatient_02)
-
-  tables[which_tables$prescription] <- map(tables[which_tables$prescription], etl_prescription_02)
-
-  tables[which_tables$outpatient] <- map(tables[which_tables$outpatient], etl_outpatient_02)
-
-  tables
 }

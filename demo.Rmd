@@ -151,7 +151,7 @@ attrition_table %>%
 
 ## Attrition Plot
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.width = 8, fig.height = 6}
 # Plot an attrition chart
 attrition_table %>%
   plot_attrition()

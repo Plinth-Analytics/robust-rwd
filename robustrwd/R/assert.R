@@ -1,3 +1,15 @@
+# assert.R
+#  Functions for defining table assertions
+
+#' Assert that a table is ORPP (one-row-per-patient)
+#'
+#' @param pid tbl.
+#' @param pid character. Name of the column that represents patient id
+#'
+#' @return
+#' @export
+#'
+#' @examples
 assert_is_orpp <- function(data,
                            pid = "desynpuf_id") {
   assertthat::assert_that(pid %in% colnames(data))
@@ -37,7 +49,6 @@ assert_is_inpatient <- function(data) {
     msg = glue::glue("Does not meet expctations for an inpatient table. The following expected columns are missing {paste(cols_missing, collapse = ', ')}")
   )
 }
-
 
 #' Assert that a table is a 'prescription' table
 #'

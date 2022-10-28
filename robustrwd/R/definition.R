@@ -1,3 +1,6 @@
+# definition.R
+# Store a master table of all ORPP derived variable definitions.
+# Can be used in messaging or reports
 
 definition_tbl <- tibble::tribble(
   ~sources, ~column, ~definition,

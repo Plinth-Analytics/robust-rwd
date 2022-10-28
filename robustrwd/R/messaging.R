@@ -1,3 +1,6 @@
+# messaging.R
+# helper functions to control and send messages
+
 be_noisy <- function() {
   Sys.setenv("noisy" = TRUE)
 }

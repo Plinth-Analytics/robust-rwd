@@ -1,3 +1,5 @@
+# read.R
+#  Read in tables
 
 #' Read all of the CSV Zip files in a folder
 #'
@@ -12,7 +14,6 @@ read_folder_csv_zips <- function(folder) {
       read_csv(file.path(folder, .x), show_col_types = FALSE)
     }))
 }
-
 
 receive_delivery_01 <- function() {
   if (is_noisy()) {

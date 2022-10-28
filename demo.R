@@ -312,11 +312,6 @@ ggsurvplot(fit,
   labs(title = "Survival of adult male patients from birth to death",
        subtitle = "Simulated Medicare data")
 
-# Cox
-model <- coxph( Surv(survival_years, death_observed) ~ race_cd + sex_ident_cd,
-                data = cohort_tbl )
-ggforest(model)
-
 # Finished! -------------------------------------------------------------------
 
 # Here's what we did
@@ -330,6 +325,7 @@ ggforest(model)
 # Created an attrition table
 # Conducted a survival analysis
 # Created a survival plot
+
 
 
 

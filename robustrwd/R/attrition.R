@@ -1,3 +1,5 @@
+# attrition.R
+#  Functions to create and communication cohort attrition
 
 #' Factory to create step counters
 #'
