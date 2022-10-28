@@ -4,7 +4,7 @@
 #' @importFrom dplyr count filter mutate
 #' @importFrom rlang `!!`
 #'
-step_counter_factory <- function(.df) {
+create_attrition_factory <- function(.df) {
   function(criterion, name) {
     .df <<- filter(.df, !!criterion)
     mutate(count(.df), description = name)
@@ -21,12 +21,12 @@ step_counter_factory <- function(.df) {
 #' @importFrom dplyr bind_rows
 #' @importFrom tibble tibble
 #'
-#' @examples step_counter(mtcars, "vs are 1" = vs == 1, "mpg less than 20" = mpg < 20)
+#' @examples create_attrition(mtcars, "vs are 1" = vs == 1, "mpg less than 20" = mpg < 20)
 #'
-step_counter <- function(.df, ...) {
+create_attrition <- function(.df, ...) {
   # there's something nice about writing "Everyone" = TRUE
   criteria <- append(list("Everyone" = quo(TRUE)), enquos(...))
-  counter <- step_counter_factory(.df)
+  counter <- create_attrition_factory(.df)
 
   reduce2(criteria, names(criteria), function(acc, cr, n_cr) {
     bind_rows(acc, counter(cr, n_cr))
@@ -38,7 +38,7 @@ step_counter <- function(.df, ...) {
 #' @importFrom rlang `!!!` enquos
 apply_inclusion <- function(.df, ...) {
   list(
-    attrition = step_counter(.df, ...),
+    attrition = create_attrition(.df, ...),
     df = filter(.df, !!!unname(enquos(...)))
   )
 }

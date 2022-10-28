@@ -6,7 +6,7 @@
 #' @export
 #'
 #' @examples
-summarise_fail <- function(interrogation) {
+tidy_interrogation <- function(interrogation) {
   out <- interrogation %>%
     pointblank::get_agent_x_list() %>%
     purrr::pluck("n_failed") %>%
@@ -60,7 +60,7 @@ check_inpatient <- function(tbl) {
     })
 
   fail_summary <- inpatient_interroggation %>%
-    summarise_fail()
+    tidy_interrogation()
 
   for (test_i in 1:nrow(fail_summary)) {
     dat <- fail_summary %>%

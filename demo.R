@@ -1,3 +1,16 @@
+# Goal -------------------------------------------------------------------------
+
+# Here's what we did
+# Read in raw data
+# Applied QC checks on the raw data
+#   Discovered issues with delivered data and an internal ETL pipeline
+# Generated a one-row-per-patient (ORPP) table from multiple tables
+# Conducted QC checks on the ORPP table
+# Defined a cohort based on multi-dimensional criteria
+# Created an attrition table
+# Conducted a survival analysis
+# Created a survival plot
+
 # 0. Setup ---------------------------------------------------------------------
 
 # Install packages (utilizing renv)
@@ -12,8 +25,6 @@ library(survminer)
 
 # Load the robustrwd package
 devtools::load_all("robustrwd")
-
-# 0a Params ====================================================================
 
 # Turn on messaging
 be_noisy()
@@ -49,7 +60,7 @@ patients_interrogation
 
 # See the
 patients_interrogation %>%
-  summarise_fail()
+  tidy_interrogation()
 
 # Hm what's going wrong? Let's do some digging
 
@@ -93,11 +104,11 @@ inpatient_interroggation <- tables_01_etl_01$inpatient %>%
   interrogate()
 
 inpatient_interroggation %>%
-  summarise_fail()
+  tidy_interrogation()
 
 # Hm what's going wrong? Let's do some digging
 
-# Claim Payment Amount --------------------------------
+### Claim Payment Amount --------------------------------
 
 tables_01_etl_01$inpatient %>%
   filter(clm_pmt_amt < 0)
@@ -105,7 +116,7 @@ tables_01_etl_01$inpatient %>%
 # inpatient data
 #   Problem 1: 104 records indicate have NEGATIVE claims
 
-# STOP - Get the new delivery
+# STOP - Get the new delivery from the provider
 
 tables_02 <- receive_delivery_02()
 
@@ -123,7 +134,7 @@ patients_interrogation <- create_agent(tables_02_etl_01$patients,
 
 # See the
 patients_interrogation %>%
-  summarise_fail()
+  tidy_interrogation()
 
 ## Something is still wrong! We still  don't have both Males and Females
 # The provider assures us that the data are correct. Values are sent as 1s and 2s
@@ -148,26 +159,32 @@ tables_02_etl_02 <- tables_02 %>%
   etl_02()
 
 # Run on the patients data
-tables_02_etl_02$patients %>%
+patients_interrogation <- tables_02_etl_02$patients %>%
   create_agent(
     tbl_name = "Patients",
     label = "Patients data (Post ETL 02)"
   ) %>%
   expectations_patients() %>%
-  interrogate() %>%
-  summarise_fail()
+  interrogate()
+
+# Look at tidy results
+patients_interrogation %>%
+  tidy_interrogation()
 
 # Results look good!
 # Now let's try on the inpatient data
 
-tables_02_etl_02$inpatient %>%
+inpatient_interrogation <- tables_02_etl_02$inpatient %>%
   create_agent(
     tbl_name = "Inpatient",
     label = "Inpatient data (Post ETL 02)"
   ) %>%
   expectations_inpatient() %>%
-  interrogate() %>%
-  summarise_fail()
+  interrogate()
+
+# Look at tidy results
+inpatient_interrogation %>%
+  tidy_interrogation()
 
 ## Comment: Looks great!
 ## While there is much more checking we could implement, let's move on to the next step
@@ -212,14 +229,21 @@ orpp_interrogation <- create_agent(orpp_tbl,
 
 # Print result
 orpp_interrogation %>%
-  summarise_fail()
+  tidy_interrogation()
 
 # 5. Cohort definition and Attrition -------------------------------------------
+
+# Define cohort as patients who have...
+# Aace of Black or white
+# Diabetes
+# Median inpatient claim amount of at least 10,000
+# Median cost of prescriptions must be at least $20
+# At least 18 years of known survival
 
 # 5b. Create attrition table ===================================================
 
 attrition_table <-
-  step_counter(
+  create_attrition(
     orpp_tbl,
     "Race is white or black" = race_cd %in% c("White", "Black"),
     "Has Diabetes" = diabetes == TRUE,
@@ -258,3 +282,15 @@ ggsurvplot(fit,
            conf.int = TRUE,
            surv.median.line = "hv")
 
+# Finished! -------------------------------------------------------------------
+
+# Here's what we did
+# Read in raw data
+# Applied QC checks on the raw data
+#   Discovered issues with delivered data and an internal ETL pipeline
+# Generated a one-row-per-patient (ORPP) table from multiple tables
+# Conducted QC checks on the ORPP table
+# Defined a cohort based on multi-dimensional criteria
+# Created an attrition table
+# Conducted a survival analysis
+# Created a survival plot
