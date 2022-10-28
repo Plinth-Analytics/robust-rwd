@@ -16,7 +16,7 @@ create_attrition_factory <- function(.df) {
 #' @param .df A table whose rows will be counted
 #' @param ... Criteria (named, if you like) to apply to `.df`
 #'
-#' @importFrom rlang quo
+#' @importFrom rlang enquos
 #' @importFrom purrr reduce2
 #' @importFrom dplyr bind_rows
 #' @importFrom tibble tibble
@@ -32,15 +32,6 @@ create_attrition <- function(.df, ...) {
     bind_rows(acc, counter(cr, n_cr))
   }, .init = tibble(description = character(0), n = integer(0))) %>%
     dplyr::mutate(n_dropped = n - lag(n, 1))
-}
-
-#' @importFrom dplyr filter
-#' @importFrom rlang `!!!` enquos
-apply_inclusion <- function(.df, ...) {
-  list(
-    attrition = create_attrition(.df, ...),
-    df = filter(.df, !!!unname(enquos(...)))
-  )
 }
 
 #' Plot an attrition diagram from an attrition table object
