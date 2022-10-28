@@ -268,7 +268,6 @@ attrition_table <-
   create_attrition(
     orpp_tbl,
     "Race is white or black" = race_cd %in% c("White", "Black"),
-    "Is Male" = sex_ident_cd == 'Male',
     "Has Diabetes" = diabetes == TRUE,
     "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
     "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
@@ -287,7 +286,6 @@ attrition_table %>%
 cohort_tbl <- orpp_tbl %>%
   filter(
     race_cd %in% c("White", "Black"),
-    sex_ident_cd == 'Male',
     diabetes == TRUE,
     inpatient_payment_median >= 10000,
     prescription_rx_cost_median > 20,
@@ -309,8 +307,13 @@ fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
 ggsurvplot(fit,
            conf.int = TRUE,
            surv.median.line = "hv") +
-  labs(title = "Survival of patients from birth to death",
+  labs(title = "Survival of adult male patients from birth to death",
        subtitle = "Simulated Medicare data")
+
+# Cox
+model <- coxph( Surv(survival_years, death_observed) ~ race_cd + sex_ident_cd,
+                data = cohort_tbl )
+ggforest(model)
 
 # Finished! -------------------------------------------------------------------
 
@@ -338,7 +341,6 @@ bad_orpp_tbl <- tables_02_etl_01$patients %>%
 bad_cohort_tbl <- bad_orpp_tbl %>%
   filter(
     race_cd %in% c("White", "Black"),
-    sex_ident_cd == 'Male',
     diabetes == TRUE,
     inpatient_payment_median >= 10000,
     prescription_rx_cost_median > 20,
@@ -352,6 +354,12 @@ bad_fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
 # Create the final Kaplan-Meier curve
 ggsurvplot(bad_fit,
            conf.int = TRUE,
-           surv.median.line = "hv") +
-  labs(title = "Survival of patients from birth to death using bad data",
+           surv.median.line = "hv", risk.table = TRUE) +
+  labs(title = "Survival of adult male patients from birth to death using bad data",
        subtitle = "Simulated Medicare data")
+
+
+# Cox Model
+bad_model <- coxph( Surv(survival_years, death_observed) ~ race_cd,
+                data = bad_cohort_tbl)
+ggforest(bad_model)
