@@ -38,7 +38,7 @@ be_noisy()
 tables_01 <-
   receive_delivery_01()
 
-# Now we'll use etl() to simulate an internal ETL process
+# Now we'll use etl_01() to simulate an internal ETL process
 
 tables_01_etl_01 <- tables_01 %>%
   etl_01()
@@ -47,10 +47,13 @@ tables_01_etl_01 <- tables_01 %>%
 
 ## 2b patients ===================================================================
 
+# Let's define some expectations for tha patient table:
+edit(expectations_patients)
+
+# And apply to the data
 patients_interrogation <- create_agent(tables_01_etl_01$patients,
-  tbl_name = "Patients",
-  label = "Patient level table"
-) %>%
+                                       tbl_name = "Patients",
+                                       label = "Patient level table") %>%
   expectations_patients() %>%
   interrogate()
 
@@ -245,6 +248,7 @@ attrition_table <-
   create_attrition(
     orpp_tbl,
     "Race is white or black" = race_cd %in% c("White", "Black"),
+    "Is Male" = sex_ident_cd == 'Male',
     "Has Diabetes" = diabetes == TRUE,
     "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
     "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
@@ -263,6 +267,7 @@ attrition_table %>%
 cohort_tbl <- orpp_tbl %>%
   filter(
     race_cd %in% c("White", "Black"),
+    sex_ident_cd == 'Male',
     diabetes == TRUE,
     inpatient_payment_median >= 10000,
     prescription_rx_cost_median > 20,
@@ -300,3 +305,33 @@ ggsurvplot(fit,
 # Created an attrition table
 # Conducted a survival analysis
 # Created a survival plot
+
+# Final thoughts --------------------------------------------------------------
+
+
+# What could have gone wrong:
+
+bad_orpp_tbl <- tables_02_etl_01$patients %>%
+  add_orpp_inpatient(inpatient_tbl = tables_02_etl_01$inpatient) %>%
+  add_orpp_prescription(prescription_tbl = tables_02_etl_01$prescription)
+
+bad_cohort_tbl <- bad_orpp_tbl %>%
+  filter(
+    race_cd %in% c("White", "Black"),
+    sex_ident_cd == 'Male',
+    diabetes == TRUE,
+    inpatient_payment_median >= 10000,
+    prescription_rx_cost_median > 20,
+    survival_years >= 18
+  )
+
+bad_fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
+               data = bad_cohort_tbl
+)
+
+# Create the final Kaplan-Meier curve
+ggsurvplot(bad_fit,
+           conf.int = TRUE,
+           surv.median.line = "hv") +
+  labs(title = "Survival of patients from birth to death using bad data",
+       subtitle = "Simulated Medicare data")

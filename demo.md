@@ -32,21 +32,21 @@ patients_interrogation %>%
 
     ## ✔ All Pass No failures across all 13 Tests!
 
-| fail_n | test                                             | column         | any_fail |
-|-------:|:-------------------------------------------------|:---------------|:---------|
-|      0 | Key columns exist                                | birth_dt       | FALSE    |
-|      0 | No one born before 01-01-1900                    | birth_dt       | FALSE    |
-|      0 | Key columns exist                                | cncr           | FALSE    |
-|      0 | Expect both patients with and without cancer     | cncr           | FALSE    |
-|      0 | Key columns exist                                | death_dt       | FALSE    |
-|      0 | No one born before 01-01-1900                    | death_dt       | FALSE    |
-|      0 | Expect both patients with and without death info | death_observed | FALSE    |
-|      0 | Key columns exist                                | desynpuf_id    | FALSE    |
-|      0 | Table is ORPP                                    | desynpuf_id    | FALSE    |
-|      0 | Key columns exist                                | diabetes       | FALSE    |
-|      0 | Key columns exist                                | race_cd        | FALSE    |
-|      0 | Key columns exist                                | sex_ident_cd   | FALSE    |
-|      0 | Expect both Male and Female patients             | sex_ident_cd   | FALSE    |
+| fail_n | test                                              | column         | any_fail |
+|-------:|:--------------------------------------------------|:---------------|:---------|
+|      0 | Key columns exist                                 | birth_dt       | FALSE    |
+|      0 | Everyone born after 01-01-1900                    | birth_dt       | FALSE    |
+|      0 | Key columns exist                                 | cncr           | FALSE    |
+|      0 | Dataset contains patients with and without cancer | cncr           | FALSE    |
+|      0 | Key columns exist                                 | death_dt       | FALSE    |
+|      0 | Everyone born after 01-01-1900                    | death_dt       | FALSE    |
+|      0 | Dataset contains alive and dead patients          | death_observed | FALSE    |
+|      0 | Key columns exist                                 | desynpuf_id    | FALSE    |
+|      0 | Dataset has only One Row Per Patient (OORP)       | desynpuf_id    | FALSE    |
+|      0 | Key columns exist                                 | diabetes       | FALSE    |
+|      0 | Key columns exist                                 | race_cd        | FALSE    |
+|      0 | Key columns exist                                 | sex_ident_cd   | FALSE    |
+|      0 | Dataset contains both Male and Female patients    | sex_ident_cd   | FALSE    |
 
 ## Inpatient
 
@@ -124,10 +124,10 @@ orpp_interrogation %>%
 
     ## ✔ All Pass No failures across all 2 Tests!
 
-| fail_n | test                                  | column         | any_fail |
-|-------:|:--------------------------------------|:---------------|:---------|
-|      0 | Table is ORPP                         | desynpuf_id    | FALSE    |
-|      0 | No patient has negative survival time | survival_years | FALSE    |
+| fail_n | test                                        | column         | any_fail |
+|-------:|:--------------------------------------------|:---------------|:---------|
+|      0 | Dataset has only One Row Per Patient (OORP) | desynpuf_id    | FALSE    |
+|      0 | No patient has negative survival time       | survival_years | FALSE    |
 
 # Cohort
 
@@ -136,6 +136,7 @@ attrition_table <-
   create_attrition(
     orpp_tbl,
     "Race is white or black" = race_cd %in% c("White", "Black"),
+    "Is Male" = sex_ident_cd == 'Male',
     "Has Diabetes" = diabetes == TRUE,
     "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
     "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
@@ -151,10 +152,11 @@ attrition_table %>%
 |:----------------------------------|------:|----------:|
 | Everyone                          | 10000 |        NA |
 | Race is white or black            |  9323 |      -677 |
-| Has Diabetes                      |  3605 |     -5718 |
-| Has at least 1000 inpatient costs |   610 |     -2995 |
-| Median prescription cost is \> 50 |   199 |      -411 |
-| 18 years of age or older          |   198 |        -1 |
+| Is Male                           |  4136 |     -5187 |
+| Has Diabetes                      |  1526 |     -2610 |
+| Has at least 1000 inpatient costs |   268 |     -1258 |
+| Median prescription cost is \> 50 |    83 |      -185 |
+| 18 years of age or older          |    83 |         0 |
 
 ``` r
 # Plot an attrition chart
@@ -168,6 +170,7 @@ attrition_table %>%
 cohort_tbl <- orpp_tbl %>%
   filter(
     race_cd %in% c("White", "Black"),
+    sex_ident_cd == 'Male',
     diabetes == TRUE,
     inpatient_payment_median >= 10000,
     prescription_rx_cost_median > 20,

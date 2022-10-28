@@ -98,6 +98,7 @@ attrition_table <-
   create_attrition(
     orpp_tbl,
     "Race is white or black" = race_cd %in% c("White", "Black"),
+    "Is Male" = sex_ident_cd == 'Male',
     "Has Diabetes" = diabetes == TRUE,
     "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
     "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
@@ -115,6 +116,7 @@ attrition_table %>%
 cohort_tbl <- orpp_tbl %>%
   filter(
     race_cd %in% c("White", "Black"),
+    sex_ident_cd == 'Male',
     diabetes == TRUE,
     inpatient_payment_median >= 10000,
     prescription_rx_cost_median > 20,

@@ -18,25 +18,25 @@ expectations_patients <- function(agent) {
     ) %>%
     # Are patient IDs unique?
     rows_distinct(vars(desynpuf_id),
-      label = "Table is ORPP"
+      label = "Dataset has only One Row Per Patient (OORP)"
     ) %>%
     # All dates after 1900
     col_vals_gt(vars(birth_dt, death_dt),
       value = ymd("19000101"),
-      label = "No one born before 01-01-1900",
+      label = "Everyone born after 01-01-1900",
       na_pass = TRUE
     ) %>%
     col_vals_make_set(vars(death_observed),
       set = c(TRUE, FALSE),
-      label = "Expect both patients with and without death info"
+      label = "Dataset contains alive and dead patients"
     ) %>%
     col_vals_make_set(vars(sex_ident_cd),
       set = c("Male", "Female"),
-      label = "Expect both Male and Female patients"
+      label = "Dataset contains both Male and Female patients"
     ) %>%
     col_vals_make_set(vars(cncr),
       set = c(TRUE, FALSE),
-      label = "Expect both patients with and without cancer"
+      label = "Dataset contains patients with and without cancer"
     )
 }
 
@@ -74,7 +74,7 @@ expectations_orpp <- function(agent) {
   agent %>%
     # Are patient IDs unique?
     rows_distinct(vars(desynpuf_id),
-      label = "Table is ORPP"
+      label = "Dataset has only One Row Per Patient (OORP)"
     ) %>%
     # Are patient IDs unique?
     col_vals_gt(vars(survival_years),
