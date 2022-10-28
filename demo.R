@@ -6,6 +6,7 @@
 # 3. Generate a one-row-per-patient (ORPP) table from multiple tables
 # 4. Conduct QC checks on the ORPP table
 # 5. Define a cohort based on multi-dimensional criteria
+#      Race, Age, Diabetes status, Inpatient costs, Prescription costs
 # 6. Create an attrition table
 # 7. Conducted a survival analysis
 # 8. Created a survival plot
@@ -257,11 +258,11 @@ orpp_interrogation %>%
 # 5. Cohort definition and Attrition -------------------------------------------
 
 # Define cohort as patients who have...
-# Aace of Black or white
-# Diabetes
-# Median inpatient claim amount of at least 10,000
-# Median cost of prescriptions must be at least $20
-# At least 18 years of known survival
+#   Race of Black or white
+#   Diabetes
+#   Median inpatient claim amount of at least 10,000
+#   Median cost of prescriptions must be at least $20
+#   At least 18 years of known survival
 
 # 5b. Create attrition table ===================================================
 
@@ -272,7 +273,7 @@ attrition_table <-
     "Has Diabetes" = diabetes == TRUE,
     "Has at least 1000 inpatient costs" = inpatient_payment_median >= 10000,
     "Median prescription cost is > 50" = prescription_rx_cost_median > 20,
-    "18 years of age or older" = survival_years >= 18
+    "18 years of known survival" = survival_years >= 18
   )
 
 # Show the attrition table
@@ -329,8 +330,6 @@ ggforest(model)
 # Created an attrition table
 # Conducted a survival analysis
 # Created a survival plot
-
-
 
 
 
