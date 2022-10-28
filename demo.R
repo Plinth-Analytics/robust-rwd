@@ -103,7 +103,7 @@ tables_01_etl_01$inpatient %>%
   filter(clm_pmt_amt < 0)
 
 # inpatient data
-#   Problem 1: 204 records indicate have NEGATIVE claims over 10,000
+#   Problem 1: 104 records indicate have NEGATIVE claims
 
 # STOP - Get the new delivery
 
@@ -114,7 +114,7 @@ tables_02_etl_01 <- tables_02 %>%
 
 # Test patients ---------------------------------------------------------------
 
-patients_interrogation <- create_agent(tables_02_post_etl$patients,
+patients_interrogation <- create_agent(tables_02_etl_01$patients,
   tbl_name = "Patients",
   label = "Patient level table"
 ) %>%
@@ -149,7 +149,6 @@ tables_02_etl_01$patients %>%
 
 tables_02_etl_02 <- tables_02 %>%
   etl_02()
-
 
 # Run on the patients data
 tables_02_etl_02$patients %>%
@@ -198,9 +197,12 @@ orpp_tbl <- tables_02_post_etl$patients
 #  2. inpatient data, summarised with add_orpp_inpatient()
 #  3. prescription data, summarised with add_orpp_prescription()
 
-orpp_tbl <- tables_02_post_etl$patients %>%
-  add_orpp_inpatient(inpatient_tbl = tables_02_post_etl$inpatient) %>%
-  add_orpp_prescription(prescription_tbl = tables_02_post_etl$prescription)
+orpp_tbl <- tables_02_etl_02$patients %>%
+  add_orpp_inpatient(inpatient_tbl = tables_02_etl_02$inpatient) %>%
+  add_orpp_prescription(prescription_tbl = tables_02_etl_02$prescription)
+
+# Print to the console
+orpp_tbl
 
 # 4. QC ORPP -------------------------------------------------------------------
 
@@ -250,13 +252,7 @@ cohort_tbl <- orpp_tbl %>%
 
 # 6. Analyses ------------------------------------------------------------------
 
-## 6a. Table 1 -----------------------------------------------------------------
-
-# Look at overall patient character istics
-
-table_one(cohort_tbl)
-
-## 6b. Survival analysis--------------------------------------------------------
+## 6a. Survival analysis--------------------------------------------------------
 
 # Let's see how cancer diagnosis may affect survival after age 65. Note that we assume:
 #  * patients entered the data at and had conditions diagnosed by age 65
