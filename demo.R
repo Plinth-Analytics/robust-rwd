@@ -34,23 +34,18 @@ be_noisy()
 # 1. Read data -----------------------------------------------------------------
 
 # Receive the delivery of data from the provider
-
-tables_01 <-
-  receive_delivery_01()
+tables_01 <- receive_delivery_01()
 
 # Now we'll use etl() to simulate an internal ETL process
-
-tables_01_etl_01 <- tables_01 %>%
-  etl_01()
+tables_01_etl_01 <- etl_01(tables_01)
 
 # 2. QC raw data ---------------------------------------------------------------
 
 ## 2b patients ===================================================================
 
 patients_interrogation <- create_agent(tables_01_etl_01$patients,
-  tbl_name = "Patients",
-  label = "Patient level table"
-) %>%
+                                       tbl_name = "Patients",
+                                       label = "Patient level table") %>%
   expectations_patients() %>%
   interrogate()
 
@@ -58,33 +53,22 @@ patients_interrogation <- create_agent(tables_01_etl_01$patients,
 patients_interrogation
 
 # See the
-patients_interrogation %>%
-  tidy_interrogation()
+tidy_interrogation(patients_interrogation)
 
 # Hm what's going wrong? Let's do some digging
 
 #### Birth date --------------------------------
-
-tables_01_etl_01$patients %>%
-  filter(birth_dt <= ymd("19000101"))
+filter(tables_01_etl_01$patients,
+       tables_01_etl_01$patientsbirth_dt <= ymd("19000101"))
 
 #### Cancer --------------------------------
-
-tables_01_etl_01$patients %>%
-  group_by(cncr) %>%
-  tally()
+count(tables_01_etl_01$patients, cncr)
 
 #### Death info ------------------------------
-
-tables_01_etl_01$patients %>%
-  group_by(death_observed) %>%
-  tally()
+count(tables_01_etl_01$patients, death_observed)
 
 #### Sex info ------------------------------
-
-tables_01_etl_01$patients %>%
-  group_by(sex_ident_cd) %>%
-  tally()
+count(tables_01_etl_01$patients, sex_ident_cd)
 
 # patients data
 #   Problem 1: Some patients have birth dates before 1900
@@ -93,24 +77,18 @@ tables_01_etl_01$patients %>%
 #   Problem 4: All patients are Male
 
 ## 2c Inpatient ================================================================
-
-inpatient_interroggation <- tables_01_etl_01$inpatient %>%
-  create_agent(
-    tbl_name = "Inpatient",
-    label = "Inpatient data (Post ETL)"
-  ) %>%
+inpatient_interrogation <- tables_01_etl_01$inpatient %>%
+  create_agent(tbl_name = "Inpatient",
+               label = "Inpatient data (Post ETL)") %>%
   expectations_inpatient() %>%
   interrogate()
 
-inpatient_interroggation %>%
-  tidy_interrogation()
+tidy_interrogation(inpatient_interrogation)
 
 # Hm what's going wrong? Let's do some digging
 
 ### Claim Payment Amount --------------------------------
-
-tables_01_etl_01$inpatient %>%
-  filter(clm_pmt_amt < 0)
+filter(tables_01_etl_01$inpatient, clm_pmt_amt < 0)
 
 # inpatient data
 #   Problem 1: 104 records indicate have NEGATIVE claims
@@ -119,21 +97,18 @@ tables_01_etl_01$inpatient %>%
 
 tables_02 <- receive_delivery_02()
 
-tables_02_etl_01 <- tables_02 %>%
-  etl_01()
+tables_02_etl_01 <- etl_01(tables_02)
 
 # Test patients ---------------------------------------------------------------
 
 patients_interrogation <- create_agent(tables_02_etl_01$patients,
-  tbl_name = "Patients",
-  label = "Patient level table"
-) %>%
+                                       tbl_name = "Patients",
+                                       label = "Patient level table") %>%
   expectations_patients() %>%
   interrogate()
 
 # See the
-patients_interrogation %>%
-  tidy_interrogation()
+tidy_interrogation(patients_interrogation)
 
 ## Something is still wrong! We still  don't have both Males and Females
 # The provider assures us that the data are correct. Values are sent as 1s and 2s
@@ -142,48 +117,39 @@ patients_interrogation %>%
 # Wait...1s and 2s? What about the "Male" and "Female"
 
 # Look at 'raw' patients data before ETL. I see both 1s and 2s!
-tables_02$patients %>%
-  select(BENE_SEX_IDENT_CD)
+select(tables_02$patients, BENE_SEX_IDENT_CD)
 
 # Now look after ETL. I only see "Male"!
-tables_02_etl_01$patients %>%
-  select(sex_ident_cd)
+select(tables_02_etl_01$patients, sex_ident_cd)
 
 # Oh no our ETL is wrong!
 # If you look at the robustrwd/R/etl_01.R script you'll see the offending lines
 
 # Our eng team has created a new ETL process called etl_02. Let's run it on our data
 
-tables_02_etl_02 <- tables_02 %>%
-  etl_02()
+tables_02_etl_02 <- etl_02(tables_02)
 
 # Run on the patients data
 patients_interrogation <- tables_02_etl_02$patients %>%
-  create_agent(
-    tbl_name = "Patients",
-    label = "Patients data (Post ETL 02)"
-  ) %>%
+  create_agent(tbl_name = "Patients",
+               label = "Patients data (Post ETL 02)") %>%
   expectations_patients() %>%
   interrogate()
 
 # Look at tidy results
-patients_interrogation %>%
-  tidy_interrogation()
+tidy_interrogation(patients_interrogation)
 
 # Results look good!
 # Now let's try on the inpatient data
 
 inpatient_interrogation <- tables_02_etl_02$inpatient %>%
-  create_agent(
-    tbl_name = "Inpatient",
-    label = "Inpatient data (Post ETL 02)"
-  ) %>%
+  create_agent(tbl_name = "Inpatient",
+               label = "Inpatient data (Post ETL 02)") %>%
   expectations_inpatient() %>%
   interrogate()
 
 # Look at tidy results
-inpatient_interrogation %>%
-  tidy_interrogation()
+tidy_interrogation(inpatient_interrogation)
 
 ## Comment: Looks great!
 ## While there is much more checking we could implement, let's move on to the next step
@@ -220,15 +186,13 @@ orpp_tbl
 # 4. QC ORPP -------------------------------------------------------------------
 
 orpp_interrogation <- create_agent(orpp_tbl,
-  tbl_name = "ORPP cohort",
-  label = "Patient level table"
-) %>%
+                                   tbl_name = "ORPP cohort",
+                                   label = "Patient level table") %>%
   expectations_orpp() %>%
   interrogate()
 
 # Print result
-orpp_interrogation %>%
-  tidy_interrogation()
+tidy_interrogation(orpp_interrogation)
 
 # 5. Cohort definition and Attrition -------------------------------------------
 
@@ -255,8 +219,7 @@ attrition_table <-
 attrition_table
 
 # Plot an attrition chart
-attrition_table %>%
-  plot_attrition()
+plot_attrition(attrition_table)
 
 # 5c. Apply attrition criteria to orpp tble ====================================
 
@@ -277,8 +240,7 @@ cohort_tbl <- orpp_tbl %>%
 # We will answer this with a survival analysis
 
 fit <- survfit(Surv(survival_years, death_observed) ~ race_cd,
-  data = cohort_tbl
-)
+               data = cohort_tbl)
 
 # Create the final Kaplan-Meier curve
 ggsurvplot(fit,
