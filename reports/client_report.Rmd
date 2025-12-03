@@ -1,0 +1,513 @@
+---
+title: "Healthcare Claims Data Quality & Cohort Analysis Report"
+subtitle: "Medicare Synthetic Public Use Files Analysis"
+author: "Plinth Analytics"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    code_folding: hide
+    df_print: paged
+    css: custom.css
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding, knit_root_dir = here::here())
+  })
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6,
+  fig.align = "center"
+)
+knitr::opts_knit$set(root.dir = here::here())
+
+# Load libraries
+library(tidyverse)
+library(pointblank)
+library(survival)
+library(gtsummary)
+library(survminer)
+library(gt)
+library(scales)
+
+# Load the robustrwd package
+devtools::load_all(here::here("robustrwd"))
+be_quiet()
+
+# Custom colors
+plinth_blue <- "#4783F1"
+plinth_green <- "#28a745"
+plinth_red <- "#dc3545"
+plinth_orange <- "#fd7e14"
+plinth_gray <- "#6c757d"
+```
+
+```{r load-data}
+# Load and process data
+tables <- receive_delivery_02()
+tables_clean <- tables %>% etl_02()
+
+# Create ORPP table
+orpp_tbl <- tables_clean$patients %>%
+  add_orpp_inpatient(inpatient_tbl = tables_clean$inpatient) %>%
+  add_orpp_prescription(prescription_tbl = tables_clean$prescription)
+```
+
+# Executive Summary {.tabset}
+
+## Overview
+
+<div class="summary-box">
+
+This report presents a comprehensive data quality assessment and cohort analysis of Medicare claims data. The analysis pipeline includes:
+
+- **Data Validation**: Automated quality checks using pointblank
+- **ETL Processing**: Standardized data transformation pipeline
+- **Cohort Definition**: Multi-criteria patient selection
+- **Survival Analysis**: Kaplan-Meier estimation by demographic groups
+
+</div>
+
+## Key Metrics
+
+```{r key-metrics}
+# Calculate key metrics
+n_patients <- nrow(tables_clean$patients)
+n_inpatient_claims <- nrow(tables_clean$inpatient)
+n_prescriptions <- nrow(tables_clean$prescription)
+n_outpatient <- nrow(tables_clean$outpatient)
+
+tibble(
+  Metric = c("Total Patients", "Inpatient Claims", "Prescription Records", "Outpatient Claims"),
+  Count = c(n_patients, n_inpatient_claims, n_prescriptions, n_outpatient),
+  `Formatted` = comma(Count)
+) %>%
+  gt() %>%
+  tab_header(
+    title = md("**Data Volume Summary**"),
+    subtitle = "Records processed in this analysis"
+  ) %>%
+  cols_hide(Count) %>%
+  cols_label(Formatted = "Record Count") %>%
+  tab_options(
+    table.font.size = px(14),
+    heading.title.font.size = px(18),
+    heading.subtitle.font.size = px(14)
+  ) %>%
+  cols_align(align = "right", columns = Formatted)
+```
+
+---
+
+# Data Quality Assessment {.tabset}
+
+Automated data validation was performed using the `pointblank` framework. Each table underwent rigorous quality checks to ensure data integrity before analysis.
+
+## Patients
+
+```{r patients-validation}
+patients_agent <- tables_clean$patients %>%
+  create_agent(
+    tbl_name = "Patients",
+    label = "Patient Demographics Quality Assessment"
+  ) %>%
+  expectations_patients() %>%
+  interrogate()
+
+patients_agent
+```
+
+## Inpatient Claims
+
+```{r inpatient-validation}
+inpatient_agent <- tables_clean$inpatient %>%
+  create_agent(
+    tbl_name = "Inpatient Claims",
+    label = "Inpatient Claims Quality Assessment"
+  ) %>%
+  expectations_inpatient() %>%
+  interrogate()
+
+inpatient_agent
+```
+
+## ORPP Table
+
+```{r orpp-validation}
+orpp_agent <- orpp_tbl %>%
+  create_agent(
+    tbl_name = "One Row Per Patient",
+    label = "Derived ORPP Table Quality Assessment"
+  ) %>%
+  expectations_orpp() %>%
+  interrogate()
+
+orpp_agent
+```
+
+## Validation Summary
+
+```{r validation-summary}
+# Summarize all validations
+validation_summary <- tibble(
+  Table = c("Patients", "Inpatient Claims", "ORPP"),
+  `Total Tests` = c(
+    nrow(patients_agent$validation_set),
+    nrow(inpatient_agent$validation_set),
+    nrow(orpp_agent$validation_set)
+  ),
+  `Tests Passed` = c(
+    sum(patients_agent$validation_set$all_passed),
+    sum(inpatient_agent$validation_set$all_passed),
+    sum(orpp_agent$validation_set$all_passed)
+  )
+) %>%
+  mutate(
+    `Pass Rate` = percent(`Tests Passed` / `Total Tests`),
+    Status = if_else(`Tests Passed` == `Total Tests`, "PASS", "REVIEW")
+  )
+
+validation_summary %>%
+  gt() %>%
+  tab_header(
+    title = md("**Data Quality Summary**"),
+    subtitle = "Validation results across all data tables"
+  ) %>%
+  data_color(
+    columns = Status,
+    colors = scales::col_factor(
+      palette = c("PASS" = plinth_green, "REVIEW" = plinth_orange),
+      domain = c("PASS", "REVIEW")
+    )
+  ) %>%
+  tab_options(
+    table.font.size = px(14)
+  )
+```
+
+---
+
+# Patient Demographics {.tabset}
+
+## Population Overview
+
+```{r demographics-table}
+tables_clean$patients %>%
+  select(sex_ident_cd, race_cd, diabetes, cncr, esrd_ind, death_observed) %>%
+  tbl_summary(
+    label = list(
+      sex_ident_cd ~ "Sex",
+      race_cd ~ "Race/Ethnicity",
+      diabetes ~ "Diabetes",
+      cncr ~ "Cancer History",
+      esrd_ind ~ "End-Stage Renal Disease",
+      death_observed ~ "Deceased"
+    ),
+    statistic = list(all_categorical() ~ "{n} ({p}%)")
+  ) %>%
+  modify_header(label ~ "**Characteristic**") %>%
+  bold_labels() %>%
+  as_gt() %>%
+  tab_header(
+    title = md("**Patient Population Characteristics**"),
+    subtitle = glue::glue("N = {comma(n_patients)} patients")
+  )
+```
+
+## Age Distribution
+
+```{r age-distribution, fig.height=5}
+tables_clean$patients %>%
+  mutate(
+    age_at_study = as.numeric(difftime(Sys.Date(), birth_dt, units = "days")) / 365.25
+  ) %>%
+  ggplot(aes(x = age_at_study)) +
+  geom_histogram(fill = plinth_blue, color = "white", bins = 30, alpha = 0.8) +
+  labs(
+    title = "Distribution of Patient Age",
+    subtitle = "Age calculated from birth date to current date",
+    x = "Age (years)",
+    y = "Number of Patients"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  ) +
+  scale_y_continuous(labels = comma)
+```
+
+## Race/Ethnicity
+
+```{r race-distribution, fig.height=5}
+tables_clean$patients %>%
+  count(race_cd, sort = TRUE) %>%
+  mutate(
+    pct = n / sum(n),
+    race_cd = fct_reorder(race_cd, n)
+  ) %>%
+  ggplot(aes(x = race_cd, y = n, fill = race_cd)) +
+  geom_col(alpha = 0.9) +
+  geom_text(aes(label = paste0(comma(n), " (", percent(pct, accuracy = 0.1), ")")),
+            hjust = -0.1, size = 3.5) +
+  coord_flip() +
+  labs(
+    title = "Patient Distribution by Race/Ethnicity",
+    x = NULL,
+    y = "Number of Patients"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_blank()
+  ) +
+  scale_y_continuous(labels = comma, expand = expansion(mult = c(0, 0.2))) +
+  scale_fill_brewer(palette = "Set2")
+```
+
+---
+
+# Cohort Definition & Attrition
+
+## Inclusion Criteria
+
+The analysis cohort was defined using the following sequential criteria:
+
+```{r criteria-table}
+tibble(
+  Step = 1:6,
+  Criterion = c(
+    "Race is White or Black",
+    "Has Diabetes diagnosis",
+    "Sex is Male",
+    "Median inpatient payment >= $10,000",
+    "Median prescription cost > $20",
+    "At least 18 years of known survival"
+  ),
+  Rationale = c(
+    "Focus on populations with sufficient sample size",
+    "Target population of clinical interest",
+    "Subset for focused analysis",
+    "Patients with significant healthcare utilization",
+    "Patients with ongoing medication needs",
+    "Adequate follow-up for survival analysis"
+  )
+) %>%
+  gt() %>%
+  tab_header(
+    title = md("**Cohort Inclusion Criteria**")
+  ) %>%
+  cols_width(
+    Step ~ px(60),
+    Criterion ~ px(300),
+    Rationale ~ px(350)
+  ) %>%
+  tab_options(table.font.size = px(13))
+```
+
+## Attrition Analysis
+
+```{r attrition-table}
+attrition_tbl <- create_attrition(
+  orpp_tbl,
+  "Race is White or Black" = race_cd %in% c("White", "Black"),
+  "Has Diabetes" = diabetes == TRUE,
+  "Sex is Male" = sex_ident_cd == "Male",
+  "Median inpatient payment >= $10,000" = inpatient_payment_median >= 10000,
+  "Median prescription cost > $20" = prescription_rx_cost_median > 20,
+  "18+ years of known survival" = survival_years >= 18
+)
+
+attrition_tbl %>%
+  mutate(
+    `Retention Rate` = percent(n / first(n), accuracy = 0.1),
+    n = comma(n),
+    n_dropped = comma(n_dropped)
+  ) %>%
+  rename(
+    Criterion = description,
+    `Patients Remaining` = n,
+    `Patients Excluded` = n_dropped
+  ) %>%
+  gt() %>%
+  tab_header(
+    title = md("**Cohort Attrition Summary**"),
+    subtitle = "Sequential application of inclusion criteria"
+  ) %>%
+  tab_options(table.font.size = px(13)) %>%
+  sub_missing(missing_text = "-")
+```
+
+## Attrition Visualization
+
+```{r attrition-plot, fig.height=7, fig.width=10}
+plot_attrition(attrition_tbl, title = "Cohort Attrition Flow") +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_text(size = 11)
+  )
+```
+
+---
+
+# Final Cohort Analysis {.tabset}
+
+```{r final-cohort}
+cohort_tbl <- orpp_tbl %>%
+  filter(
+    race_cd %in% c("White", "Black"),
+    diabetes == TRUE,
+    sex_ident_cd == "Male",
+    inpatient_payment_median >= 10000,
+    prescription_rx_cost_median > 20,
+    survival_years >= 18
+  )
+```
+
+## Cohort Characteristics
+
+```{r cohort-summary}
+cohort_tbl %>%
+  select(
+    race_cd,
+    survival_years,
+    death_observed,
+    inpatient_payment_median,
+    prescription_rx_cost_median,
+    inpatient_claims_n,
+    prescription_n
+  ) %>%
+  tbl_summary(
+    by = race_cd,
+    label = list(
+      survival_years ~ "Survival Time (years)",
+      death_observed ~ "Death Observed",
+      inpatient_payment_median ~ "Median Inpatient Payment ($)",
+      prescription_rx_cost_median ~ "Median Rx Cost ($)",
+      inpatient_claims_n ~ "Number of Inpatient Claims",
+      prescription_n ~ "Number of Prescriptions"
+    ),
+    statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})",
+      all_categorical() ~ "{n} ({p}%)"
+    ),
+    digits = list(
+      all_continuous() ~ 1
+    )
+  ) %>%
+  add_overall() %>%
+  modify_header(label ~ "**Variable**") %>%
+  bold_labels() %>%
+  as_gt() %>%
+  tab_header(
+    title = md("**Final Cohort Characteristics by Race**"),
+    subtitle = glue::glue("N = {nrow(cohort_tbl)} patients meeting all inclusion criteria")
+  )
+```
+
+## Survival Analysis
+
+```{r survival-analysis, fig.height=8, fig.width=10}
+fit <- survfit(
+  Surv(survival_years, death_observed) ~ race_cd,
+  data = cohort_tbl
+)
+
+ggsurvplot(
+  fit,
+  data = cohort_tbl,
+  conf.int = TRUE,
+  risk.table = TRUE,
+  risk.table.col = "strata",
+  risk.table.height = 0.25,
+  surv.median.line = "hv",
+  palette = c(plinth_blue, plinth_orange),
+  ggtheme = theme_minimal(base_size = 14),
+  title = "Kaplan-Meier Survival Curves by Race",
+  xlab = "Time (Years)",
+  ylab = "Survival Probability",
+  legend.title = "Race",
+  legend.labs = c("Black", "White"),
+  font.title = c(16, "bold"),
+  font.x = 14,
+  font.y = 14,
+  font.tickslab = 12
+)
+```
+
+## Healthcare Utilization
+
+```{r utilization-plot, fig.height=6}
+cohort_tbl %>%
+  select(race_cd, inpatient_payment_median, prescription_rx_cost_median) %>%
+  pivot_longer(
+    cols = c(inpatient_payment_median, prescription_rx_cost_median),
+    names_to = "cost_type",
+    values_to = "amount"
+  ) %>%
+  mutate(
+    cost_type = case_when(
+      cost_type == "inpatient_payment_median" ~ "Inpatient Payments",
+      cost_type == "prescription_rx_cost_median" ~ "Prescription Costs"
+    )
+  ) %>%
+  ggplot(aes(x = race_cd, y = amount, fill = race_cd)) +
+  geom_boxplot(alpha = 0.8, outlier.alpha = 0.5) +
+  facet_wrap(~cost_type, scales = "free_y") +
+  labs(
+    title = "Healthcare Cost Distribution by Race",
+    subtitle = "Median values per patient",
+    x = NULL,
+    y = "Amount ($)"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 12)
+  ) +
+  scale_y_continuous(labels = dollar) +
+  scale_fill_manual(values = c("Black" = plinth_blue, "White" = plinth_orange))
+```
+
+---
+
+# Appendix {.tabset}
+
+## Data Sources
+
+| Source | Description |
+|--------|-------------|
+| CMS Medicare | Synthetic Public Use Files (SynPUFs) |
+| Data Version | Delivery 02 |
+| ETL Version | v02 |
+| Processing Date | `r format(Sys.Date(), '%Y-%m-%d')` |
+
+## Validation Framework
+
+This analysis uses the [`pointblank`](https://rich-iannone.github.io/pointblank/) R package for data validation. All validation rules are defined in the `robustrwd` package and can be customized for specific use cases.
+
+## Session Info
+
+```{r session-info, echo=TRUE}
+sessionInfo()
+```
+
+---
+
+<div class="footer">
+<p>Report generated by <strong>Plinth Analytics</strong> | `r format(Sys.time(), '%Y-%m-%d %H:%M:%S %Z')`</p>
+<p>Powered by R, pointblank, and gtsummary</p>
+</div>

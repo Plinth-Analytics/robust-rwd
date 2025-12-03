@@ -1,0 +1,164 @@
+/* Custom CSS for Client Report */
+
+/* Header styling */
+.title {
+  color: #2c3e50;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: #4783F1;
+  font-weight: 500;
+}
+
+.author, .date {
+  color: #6c757d;
+}
+
+/* Summary box */
+.summary-box {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-left: 4px solid #4783F1;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.summary-box ul {
+  margin-bottom: 0;
+}
+
+.summary-box li {
+  margin-bottom: 0.5rem;
+}
+
+/* Section headers */
+h1 {
+  color: #2c3e50;
+  border-bottom: 3px solid #4783F1;
+  padding-bottom: 0.5rem;
+  margin-top: 2rem;
+}
+
+h2 {
+  color: #34495e;
+  margin-top: 1.5rem;
+}
+
+h3 {
+  color: #4783F1;
+}
+
+/* Table styling */
+.gt_table {
+  margin: 1.5rem auto !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+/* Tabs styling */
+.nav-tabs > li > a {
+  color: #4783F1;
+  font-weight: 500;
+}
+
+.nav-tabs > li.active > a {
+  background-color: #4783F1 !important;
+  color: white !important;
+  border-color: #4783F1 !important;
+}
+
+/* TOC styling */
+.tocify {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.tocify-header {
+  font-weight: 600;
+}
+
+.tocify .active {
+  background-color: #4783F1 !important;
+  color: white !important;
+}
+
+/* Footer */
+.footer {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border-top: 2px solid #4783F1;
+  text-align: center;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.footer p {
+  margin-bottom: 0.25rem;
+}
+
+/* Pointblank report integration */
+#pb_agent {
+  margin: 1.5rem 0;
+}
+
+/* Code blocks */
+pre {
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+/* Plots */
+.figure {
+  margin: 1.5rem 0;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Horizontal rules */
+hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to right, #4783F1, #e9ecef);
+  margin: 2rem 0;
+}
+
+/* Lists */
+ul, ol {
+  line-height: 1.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .summary-box {
+    padding: 1rem;
+  }
+
+  .gt_table {
+    font-size: 12px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .tocify {
+    display: none;
+  }
+
+  .nav-tabs {
+    display: none;
+  }
+
+  h1 {
+    page-break-before: always;
+  }
+}

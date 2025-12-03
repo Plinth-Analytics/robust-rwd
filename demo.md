@@ -3,8 +3,8 @@ Using R to derive robust insights from real-world healthcare data
 
 # Load data
 
--   Delivery = 02
--   ETL version = 02
+- Delivery = 02
+- ETL version = 02
 
 ``` r
 tables_02 <- receive_delivery_02()
@@ -19,21 +19,21 @@ tables_02_etl_02 <- tables_02 %>%
 
     ## ✔ All Pass No failures across all 13 Tests!
 
-| fail_n | test                                              | column         | any_fail |
-|-------:|:--------------------------------------------------|:---------------|:---------|
-|      0 | Key columns exist                                 | birth_dt       | FALSE    |
-|      0 | Everyone born after 01-01-1900                    | birth_dt       | FALSE    |
-|      0 | Key columns exist                                 | cncr           | FALSE    |
-|      0 | Dataset contains patients with and without cancer | cncr           | FALSE    |
-|      0 | Key columns exist                                 | death_dt       | FALSE    |
-|      0 | Everyone born after 01-01-1900                    | death_dt       | FALSE    |
-|      0 | Dataset contains alive and dead patients          | death_observed | FALSE    |
-|      0 | Key columns exist                                 | desynpuf_id    | FALSE    |
-|      0 | Dataset has only One Row Per Patient (OORP)       | desynpuf_id    | FALSE    |
-|      0 | Key columns exist                                 | diabetes       | FALSE    |
-|      0 | Key columns exist                                 | race_cd        | FALSE    |
-|      0 | Key columns exist                                 | sex_ident_cd   | FALSE    |
-|      0 | Dataset contains both Male and Female patients    | sex_ident_cd   | FALSE    |
+| fail_n | test | column | any_fail |
+|---:|:---|:---|:---|
+| 0 | Key columns exist | birth_dt | FALSE |
+| 0 | Everyone born after 01-01-1900 | birth_dt | FALSE |
+| 0 | Key columns exist | cncr | FALSE |
+| 0 | Dataset contains patients with and without cancer | cncr | FALSE |
+| 0 | Key columns exist | death_dt | FALSE |
+| 0 | Everyone born after 01-01-1900 | death_dt | FALSE |
+| 0 | Dataset contains alive and dead patients | death_observed | FALSE |
+| 0 | Key columns exist | desynpuf_id | FALSE |
+| 0 | Dataset has only One Row Per Patient (OORP) | desynpuf_id | FALSE |
+| 0 | Key columns exist | diabetes | FALSE |
+| 0 | Key columns exist | race_cd | FALSE |
+| 0 | Key columns exist | sex_ident_cd | FALSE |
+| 0 | Dataset contains both Male and Female patients | sex_ident_cd | FALSE |
 
     ## ✔ All Pass No failures across all 13 Tests!
 
@@ -80,11 +80,11 @@ tables_02_etl_02 <- tables_02 %>%
 
     ## ✔ All Pass No failures across all 3 Tests!
 
-| fail_n | test                                                 | column                   | any_fail |
-|-------:|:-----------------------------------------------------|:-------------------------|:---------|
-|      0 | Patients have non-negative median inpatient payments | inpatient_payment_median | FALSE    |
-|      0 | Patients have non-negative median prescription costs | inpatient_payment_median | FALSE    |
-|      0 | Patients do not have negative survival time          | survival_years           | FALSE    |
+| fail_n | test | column | any_fail |
+|---:|:---|:---|:---|
+| 0 | Patients have non-negative median inpatient payments | inpatient_payment_median | FALSE |
+| 0 | Patients have non-negative median prescription costs | inpatient_payment_median | FALSE |
+| 0 | Patients do not have negative survival time | survival_years | FALSE |
 
     ## ✔ All Pass No failures across all 3 Tests!
 
@@ -128,5 +128,12 @@ ggsurvplot(fit,
        subtitle = "Using CMS Medicare claims synthetic public use files",
        caption = glue::glue("Patients = {nrow(cohort_tbl)}\nPatients checks pass = {patients_checks_pass}\nInpatient checks pass = {inpatient_checks_pass}\nORPP checks pass = {orpp_checks_pass}"))
 ```
+
+    ## Warning in geom_segment(aes(x = 0, y = max(y2), xend = max(x1), yend = max(y2)), : All aesthetics have length 1, but the data has 2 rows.
+    ## ℹ Please consider using `annotate()` or provide this layer with data containing
+    ##   a single row.
+    ## All aesthetics have length 1, but the data has 2 rows.
+    ## ℹ Please consider using `annotate()` or provide this layer with data containing
+    ##   a single row.
 
 ![](demo_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->

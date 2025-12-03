@@ -18,11 +18,12 @@ create_attrition_factory <- function(.df) {
 #' @param .df A table whose rows will be counted
 #' @param ... Criteria (named, if you like) to apply to `.df`
 #'
-#' @importFrom rlang enquos
+#' @importFrom rlang enquos quo
 #' @importFrom purrr reduce2
-#' @importFrom dplyr bind_rows
+#' @importFrom dplyr bind_rows lag
 #' @importFrom tibble tibble
 #'
+#' @export
 #' @examples create_attrition(mtcars, "vs are 1" = vs == 1, "mpg less than 20" = mpg < 20)
 #'
 create_attrition <- function(.df, ...) {
@@ -39,9 +40,13 @@ create_attrition <- function(.df, ...) {
 #' Plot an attrition diagram from an attrition table object
 #'
 #' @param attrition_tbl tbl.
+#' @param title character. Plot title
 #' @param nudge_label_x numeric. How much to nudge labels
 #'
-#' @return ggplot2
+#' @importFrom grDevices rgb
+#'
+#' @return A ggplot2 object
+#' @export
 
 plot_attrition <- function(attrition_tbl,
                            title = "Cohort Attrition",
