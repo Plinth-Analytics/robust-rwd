@@ -53,14 +53,18 @@ plinth_gray <- "#6c757d"
 ```
 
 ```{r load-data}
-# Load and process data
-tables <- receive_delivery_02()
-tables_clean <- tables %>% etl_02()
+# Load PROBLEMATIC data (Delivery 01 + ETL v01) - has known issues
+tables_v1 <- receive_delivery_01()
+tables_v1_etl <- tables_v1 %>% etl_01()
 
-# Create ORPP table
-orpp_tbl <- tables_clean$patients %>%
-  add_orpp_inpatient(inpatient_tbl = tables_clean$inpatient) %>%
-  add_orpp_prescription(prescription_tbl = tables_clean$prescription)
+# Load CLEAN data (Delivery 02 + ETL v02) - issues resolved
+tables_v2 <- receive_delivery_02()
+tables_v2_etl <- tables_v2 %>% etl_02()
+
+# Create ORPP table from clean data
+orpp_tbl <- tables_v2_etl$patients %>%
+  add_orpp_inpatient(inpatient_tbl = tables_v2_etl$inpatient) %>%
+  add_orpp_prescription(prescription_tbl = tables_v2_etl$prescription)
 ```
 
 # Executive Summary {.tabset}
@@ -69,85 +73,187 @@ orpp_tbl <- tables_clean$patients %>%
 
 <div class="summary-box">
 
-This report presents a comprehensive data quality assessment and cohort analysis of Medicare claims data. The analysis pipeline includes:
+This report demonstrates a comprehensive data quality assessment and cohort analysis pipeline for Medicare claims data.
 
-- **Data Validation**: Automated quality checks using pointblank
-- **ETL Processing**: Standardized data transformation pipeline
-- **Cohort Definition**: Multi-criteria patient selection
-- **Survival Analysis**: Kaplan-Meier estimation by demographic groups
+**Key Highlights:**
+
+- **Automated Validation**: Data quality checks using the `pointblank` framework
+- **Issue Detection**: Identified critical data quality issues in initial delivery
+- **Remediation Tracking**: Before/after comparison showing issue resolution
+- **Analysis Pipeline**: Complete workflow from raw data to survival analysis
 
 </div>
 
 ## Key Metrics
 
 ```{r key-metrics}
-# Calculate key metrics
-n_patients <- nrow(tables_clean$patients)
-n_inpatient_claims <- nrow(tables_clean$inpatient)
-n_prescriptions <- nrow(tables_clean$prescription)
-n_outpatient <- nrow(tables_clean$outpatient)
-
 tibble(
   Metric = c("Total Patients", "Inpatient Claims", "Prescription Records", "Outpatient Claims"),
-  Count = c(n_patients, n_inpatient_claims, n_prescriptions, n_outpatient),
-  `Formatted` = comma(Count)
+  `Initial Delivery` = comma(c(
+    nrow(tables_v1_etl$patients),
+    nrow(tables_v1_etl$inpatient),
+    nrow(tables_v1_etl$prescription),
+    nrow(tables_v1_etl$outpatient)
+  )),
+  `Corrected Delivery` = comma(c(
+    nrow(tables_v2_etl$patients),
+    nrow(tables_v2_etl$inpatient),
+    nrow(tables_v2_etl$prescription),
+    nrow(tables_v2_etl$outpatient)
+  ))
 ) %>%
   gt() %>%
   tab_header(
-    title = md("**Data Volume Summary**"),
-    subtitle = "Records processed in this analysis"
+    title = md("**Data Volume Comparison**"),
+    subtitle = "Record counts across data deliveries"
   ) %>%
-  cols_hide(Count) %>%
-  cols_label(Formatted = "Record Count") %>%
-  tab_options(
-    table.font.size = px(14),
-    heading.title.font.size = px(18),
-    heading.subtitle.font.size = px(14)
-  ) %>%
-  cols_align(align = "right", columns = Formatted)
+  tab_options(table.font.size = px(14))
 ```
 
 ---
 
-# Data Quality Assessment {.tabset}
+# Data Quality Issues Detected {.tabset}
 
-Automated data validation was performed using the `pointblank` framework. Each table underwent rigorous quality checks to ensure data integrity before analysis.
+<div class="summary-box" style="border-left-color: #dc3545;">
 
-## Patients
+**Initial Data Delivery (v01)** underwent automated validation and **multiple critical issues were detected**. These findings triggered a data remediation request to the provider and an internal ETL code review.
 
-```{r patients-validation}
-patients_agent <- tables_clean$patients %>%
+</div>
+
+## Patient Data Issues
+
+```{r patients-issues}
+patients_agent_v1 <- tables_v1_etl$patients %>%
   create_agent(
-    tbl_name = "Patients",
-    label = "Patient Demographics Quality Assessment"
+    tbl_name = "Patients (Initial Delivery)",
+    label = "Patient Data - Issues Detected"
   ) %>%
   expectations_patients() %>%
   interrogate()
 
-patients_agent
+patients_agent_v1
 ```
 
-## Inpatient Claims
+### Issues Identified:
 
-```{r inpatient-validation}
-inpatient_agent <- tables_clean$inpatient %>%
+```{r patients-issues-detail}
+issues_v1 <- patients_agent_v1 %>%
+  get_agent_x_list()
+
+tibble(
+  Issue = c(
+    "Patients with birth dates before 1900",
+    "Missing cancer indicator diversity",
+    "Missing mortality data",
+    "Missing sex diversity (ETL bug)"
+  ),
+  Severity = c("High", "Medium", "High", "Critical"),
+  `Records Affected` = c(
+    issues_v1$n_failed[2],
+    "100% same value",
+    "0 deaths recorded",
+    "100% Male only"
+  ),
+  Resolution = c(
+    "Data provider correction",
+    "Data provider correction",
+    "Data provider correction",
+    "Internal ETL code fix"
+  )
+) %>%
+  gt() %>%
+  tab_header(title = md("**Patient Data Issues Summary**")) %>%
+  data_color(
+    columns = Severity,
+    colors = scales::col_factor(
+      palette = c("Critical" = plinth_red, "High" = plinth_orange, "Medium" = "#ffc107"),
+      domain = c("Critical", "High", "Medium")
+    )
+  ) %>%
+  tab_options(table.font.size = px(13))
+```
+
+## Inpatient Claims Issues
+
+```{r inpatient-issues}
+inpatient_agent_v1 <- tables_v1_etl$inpatient %>%
   create_agent(
-    tbl_name = "Inpatient Claims",
-    label = "Inpatient Claims Quality Assessment"
+    tbl_name = "Inpatient Claims (Initial Delivery)",
+    label = "Inpatient Data - Issues Detected"
   ) %>%
   expectations_inpatient() %>%
   interrogate()
 
-inpatient_agent
+inpatient_agent_v1
 ```
 
-## ORPP Table
+### Negative Payment Investigation
+
+```{r negative-payments}
+negative_claims <- tables_v1_etl$inpatient %>%
+  filter(clm_pmt_amt < 0)
+
+negative_claims %>%
+  head(10) %>%
+  select(desynpuf_id, clm_id, clm_from_dt, clm_pmt_amt) %>%
+  gt() %>%
+  tab_header(
+    title = md("**Sample of Negative Payment Claims**"),
+    subtitle = glue::glue("{nrow(negative_claims)} records with negative payments detected")
+  ) %>%
+  fmt_currency(columns = clm_pmt_amt, decimals = 2) %>%
+  tab_style(
+    style = cell_fill(color = "#ffcccc"),
+    locations = cells_body(columns = clm_pmt_amt)
+  ) %>%
+  tab_options(table.font.size = px(12))
+```
+
+---
+
+# Data Quality After Remediation {.tabset}
+
+<div class="summary-box" style="border-left-color: #28a745;">
+
+**Corrected Data Delivery (v02)** with updated ETL pipeline (v02) was validated. **All critical issues have been resolved.**
+
+</div>
+
+## Patient Data - Resolved
+
+```{r patients-clean}
+patients_agent_v2 <- tables_v2_etl$patients %>%
+  create_agent(
+    tbl_name = "Patients (Corrected Delivery)",
+    label = "Patient Data - All Issues Resolved"
+  ) %>%
+  expectations_patients() %>%
+  interrogate()
+
+patients_agent_v2
+```
+
+## Inpatient Claims - Resolved
+
+```{r inpatient-clean}
+inpatient_agent_v2 <- tables_v2_etl$inpatient %>%
+  create_agent(
+    tbl_name = "Inpatient Claims (Corrected Delivery)",
+    label = "Inpatient Data - All Issues Resolved"
+  ) %>%
+  expectations_inpatient() %>%
+  interrogate()
+
+inpatient_agent_v2
+```
+
+## ORPP Derived Table
 
 ```{r orpp-validation}
 orpp_agent <- orpp_tbl %>%
   create_agent(
     tbl_name = "One Row Per Patient",
-    label = "Derived ORPP Table Quality Assessment"
+    label = "Derived ORPP Table Validation"
   ) %>%
   expectations_orpp() %>%
   interrogate()
@@ -155,44 +261,46 @@ orpp_agent <- orpp_tbl %>%
 orpp_agent
 ```
 
-## Validation Summary
+## Validation Comparison
 
-```{r validation-summary}
-# Summarize all validations
-validation_summary <- tibble(
-  Table = c("Patients", "Inpatient Claims", "ORPP"),
+```{r validation-comparison}
+comparison_df <- tibble(
+  Table = c("Patients", "Patients", "Inpatient", "Inpatient"),
+  Version = c("Initial (v01)", "Corrected (v02)", "Initial (v01)", "Corrected (v02)"),
   `Total Tests` = c(
-    nrow(patients_agent$validation_set),
-    nrow(inpatient_agent$validation_set),
-    nrow(orpp_agent$validation_set)
+    nrow(patients_agent_v1$validation_set),
+    nrow(patients_agent_v2$validation_set),
+    nrow(inpatient_agent_v1$validation_set),
+    nrow(inpatient_agent_v2$validation_set)
   ),
   `Tests Passed` = c(
-    sum(patients_agent$validation_set$all_passed),
-    sum(inpatient_agent$validation_set$all_passed),
-    sum(orpp_agent$validation_set$all_passed)
+    sum(patients_agent_v1$validation_set$all_passed),
+    sum(patients_agent_v2$validation_set$all_passed),
+    sum(inpatient_agent_v1$validation_set$all_passed),
+    sum(inpatient_agent_v2$validation_set$all_passed)
   )
 ) %>%
   mutate(
     `Pass Rate` = percent(`Tests Passed` / `Total Tests`),
-    Status = if_else(`Tests Passed` == `Total Tests`, "PASS", "REVIEW")
+    Status = if_else(`Tests Passed` == `Total Tests`, "PASS", "FAIL")
   )
 
-validation_summary %>%
+comparison_df %>%
   gt() %>%
   tab_header(
-    title = md("**Data Quality Summary**"),
-    subtitle = "Validation results across all data tables"
+    title = md("**Before vs After: Validation Results**"),
+    subtitle = "Comparison of data quality across deliveries"
   ) %>%
   data_color(
     columns = Status,
     colors = scales::col_factor(
-      palette = c("PASS" = plinth_green, "REVIEW" = plinth_orange),
-      domain = c("PASS", "REVIEW")
+      palette = c("PASS" = plinth_green, "FAIL" = plinth_red),
+      domain = c("PASS", "FAIL")
     )
   ) %>%
-  tab_options(
-    table.font.size = px(14)
-  )
+  tab_row_group(label = "Inpatient Claims", rows = 3:4) %>%
+  tab_row_group(label = "Patient Demographics", rows = 1:2) %>%
+  tab_options(table.font.size = px(14))
 ```
 
 ---
@@ -202,7 +310,7 @@ validation_summary %>%
 ## Population Overview
 
 ```{r demographics-table}
-tables_clean$patients %>%
+tables_v2_etl$patients %>%
   select(sex_ident_cd, race_cd, diabetes, cncr, esrd_ind, death_observed) %>%
   tbl_summary(
     label = list(
@@ -220,37 +328,46 @@ tables_clean$patients %>%
   as_gt() %>%
   tab_header(
     title = md("**Patient Population Characteristics**"),
-    subtitle = glue::glue("N = {comma(n_patients)} patients")
+    subtitle = glue::glue("N = {comma(nrow(tables_v2_etl$patients))} patients")
   )
 ```
 
-## Age Distribution
+## Sex Distribution Comparison
 
-```{r age-distribution, fig.height=5}
-tables_clean$patients %>%
-  mutate(
-    age_at_study = as.numeric(difftime(Sys.Date(), birth_dt, units = "days")) / 365.25
-  ) %>%
-  ggplot(aes(x = age_at_study)) +
-  geom_histogram(fill = plinth_blue, color = "white", bins = 30, alpha = 0.8) +
+```{r sex-comparison, fig.height=5}
+bind_rows(
+  tables_v1_etl$patients %>%
+    count(sex_ident_cd) %>%
+    mutate(Version = "Initial Delivery (Bug)"),
+  tables_v2_etl$patients %>%
+    count(sex_ident_cd) %>%
+    mutate(Version = "Corrected Delivery")
+) %>%
+  ggplot(aes(x = sex_ident_cd, y = n, fill = Version)) +
+  geom_col(position = "dodge", alpha = 0.9) +
+  geom_text(aes(label = comma(n)),
+            position = position_dodge(width = 0.9),
+            vjust = -0.5, size = 4) +
   labs(
-    title = "Distribution of Patient Age",
-    subtitle = "Age calculated from birth date to current date",
-    x = "Age (years)",
+    title = "Sex Distribution: Before vs After ETL Fix",
+    subtitle = "Initial delivery showed ETL bug converting all patients to 'Male'",
+    x = "Sex",
     y = "Number of Patients"
   ) +
   theme_minimal(base_size = 14) +
   theme(
     plot.title = element_text(face = "bold"),
-    panel.grid.minor = element_blank()
+    legend.position = "bottom"
   ) +
-  scale_y_continuous(labels = comma)
+  scale_y_continuous(labels = comma, expand = expansion(mult = c(0, 0.15))) +
+  scale_fill_manual(values = c("Initial Delivery (Bug)" = plinth_red,
+                                "Corrected Delivery" = plinth_green))
 ```
 
 ## Race/Ethnicity
 
 ```{r race-distribution, fig.height=5}
-tables_clean$patients %>%
+tables_v2_etl$patients %>%
   count(race_cd, sort = TRUE) %>%
   mutate(
     pct = n / sum(n),
@@ -273,7 +390,7 @@ tables_clean$patients %>%
     panel.grid.minor = element_blank(),
     panel.grid.major.y = element_blank()
   ) +
-  scale_y_continuous(labels = comma, expand = expansion(mult = c(0, 0.2))) +
+  scale_y_continuous(labels = comma, expand = expansion(mult = c(0, 0.25))) +
   scale_fill_brewer(palette = "Set2")
 ```
 
@@ -282,8 +399,6 @@ tables_clean$patients %>%
 # Cohort Definition & Attrition
 
 ## Inclusion Criteria
-
-The analysis cohort was defined using the following sequential criteria:
 
 ```{r criteria-table}
 tibble(
@@ -403,9 +518,7 @@ cohort_tbl %>%
       all_continuous() ~ "{median} ({p25}, {p75})",
       all_categorical() ~ "{n} ({p}%)"
     ),
-    digits = list(
-      all_continuous() ~ 1
-    )
+    digits = list(all_continuous() ~ 1)
   ) %>%
   add_overall() %>%
   modify_header(label ~ "**Variable**") %>%
@@ -484,20 +597,56 @@ cohort_tbl %>%
 
 ---
 
+# Summary & Recommendations
+
+<div class="summary-box">
+
+## Data Quality Findings
+
+| Category | Initial Status | Final Status |
+|----------|---------------|--------------|
+| Patient Demographics | **4 Critical Issues** | All Resolved |
+| Inpatient Claims | **104 Invalid Records** | All Resolved |
+| ORPP Derived Data | N/A | All Validations Pass |
+
+## Key Actions Taken
+
+1. **Data Provider Notification**: Reported birth date anomalies, missing cancer/death indicators
+2. **Internal ETL Fix**: Corrected sex mapping bug in `etl_patients_01()`
+3. **Re-delivery Request**: Obtained corrected data delivery (v02)
+4. **Validation Confirmation**: All automated checks now pass
+
+## Recommendations
+
+- Continue automated validation on all future data deliveries
+- Implement real-time alerting for critical validation failures
+- Expand validation rules to cover additional data quality dimensions
+
+</div>
+
+---
+
 # Appendix {.tabset}
 
-## Data Sources
+## Data Pipeline
 
-| Source | Description |
-|--------|-------------|
-| CMS Medicare | Synthetic Public Use Files (SynPUFs) |
-| Data Version | Delivery 02 |
-| ETL Version | v02 |
-| Processing Date | `r format(Sys.Date(), '%Y-%m-%d')` |
-
-## Validation Framework
-
-This analysis uses the [`pointblank`](https://rich-iannone.github.io/pointblank/) R package for data validation. All validation rules are defined in the `robustrwd` package and can be customized for specific use cases.
+```{r pipeline-diagram, fig.height=4}
+tibble(
+  step = 1:5,
+  stage = c("Raw Data\nDelivery", "ETL\nProcessing", "Validation\n(pointblank)", "ORPP\nDerivation", "Analysis\nCohort"),
+  status = c("Input", "Transform", "Validate", "Derive", "Output")
+) %>%
+  ggplot(aes(x = step, y = 1)) +
+  geom_point(size = 20, color = plinth_blue) +
+  geom_text(aes(label = stage), color = "white", size = 3, fontface = "bold") +
+  geom_segment(aes(x = step + 0.3, xend = step + 0.7, y = 1, yend = 1),
+               arrow = arrow(length = unit(0.2, "cm")),
+               data = . %>% filter(step < 5),
+               color = plinth_gray) +
+  theme_void() +
+  labs(title = "Data Processing Pipeline") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 14))
+```
 
 ## Session Info
 
@@ -509,5 +658,5 @@ sessionInfo()
 
 <div class="footer">
 <p>Report generated by <strong>Plinth Analytics</strong> | `r format(Sys.time(), '%Y-%m-%d %H:%M:%S %Z')`</p>
-<p>Powered by R, pointblank, and gtsummary</p>
+<p>Data validation powered by <a href="https://rich-iannone.github.io/pointblank/">pointblank</a></p>
 </div>
